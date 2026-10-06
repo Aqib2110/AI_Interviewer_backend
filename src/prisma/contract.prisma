@@ -1,0 +1,161 @@
+// use prisma-8
+
+native_enum Role {
+  HR  = "HR"
+  VIEWER = "VIEWER"
+  ADMIN = "ADMIN"
+}
+
+native_enum State {
+  PENDING  = "PENDING"
+  IN_PROGRESS = "IN_PROGRESS"
+  COMPELETED = "COMPELETED"
+}
+
+native_enum InvState {
+  PENDING  = "PENDING"
+  ACCEPTED = "ACCEPTED"
+}
+
+native_enum ResumeState {
+  PENDING  = "PENDING"
+  FAILED = "FAILED"
+  PROCESSED = "PROCESSED"
+}
+
+model User {
+  id          Int          @id @default(autoincrement())
+  email       String       @unique
+  password    String
+  name        String
+  createdAt   DateTime     @default(now())
+
+  adminOf     Organization[] @relation("OrgAdmin")
+  memberships Membership[]
+  session     Session?
+  interviews Interview[]? @relation("candidate")
+  createdInterviews Interview[] @relation("createdBy")
+  subOrgs SubOrg[]
+  resume Resume[]
+}
+
+model Organization {
+  id          String       @id @default(uuid())
+  name        String
+  adminId     Int
+  createdAt   DateTime     @default(now())
+  subOrgs      SubOrg[]
+  memberships Membership[]
+  sessions    Session[]
+  interviews Interview[]
+  invitations OrgInvitation[]
+  user        User @relation("OrgAdmin", fields: [adminId], references: [id])
+}
+
+
+model OrgInvitation {
+  id String @id @default(uuid())
+  createdBy Int
+  email String
+  tokenHash String
+  role pg.enum(Role)
+  status pg.enum(InvState)
+  createdAt DateTime @default(now())
+  organizationId String
+  expiresAt DateTime
+  User User @relation(fields: [createdBy], references: [id]) 
+  organization Organization @relation(fields: [organizationId], references: [id]) 
+  @@unique([email, organizationId])
+}
+
+model SubOrg {
+id String @id @default(uuid())
+name String
+adminId Int
+orgId String?
+user User @relation(fields: [adminId], references: [id])
+organization Organization? @relation(fields: [orgId], references: [id])
+
+}
+
+model Membership {
+  id             String       @id @default(uuid())
+  role           pg.enum(Role) 
+  userId         Int
+  createdAt      DateTime     @default(now())
+  organizationId String
+
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([userId, organizationId])
+}
+
+model Session {
+  id              Int           @id @default(autoincrement())
+  refreshToken    String
+  currentTenantId String?
+  createdAt       DateTime      @default(now())
+  userId          Int           @unique
+
+  organization    Organization? @relation(fields: [currentTenantId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
+}
+
+model Interview {
+  id String @id @default(uuid())
+  title String
+  createdBy Int
+  candidateEmail String
+  aiSessionId String?
+  description String
+  candidateId Int?
+  status pg.enum(State)
+  InterviewLink String?
+  slug String
+  skills String[]?
+  videoLink String?
+  startedAt DateTime?
+  endedAt DateTime?
+  tenantId String?
+  createdAt DateTime @default(now())
+  Report Report?
+  Message Message[] @relation("interview")
+  tenant Organization? @relation(fields: [tenantId], references: [id])
+  user User @relation("createdBy", fields: [createdBy], references: [id])
+  candidate User? @relation("candidate", fields: [candidateId], references: [id])
+}
+
+model Resume{
+id String @id @default(uuid())
+fileUrl String
+fileKey String
+skills String[]?
+status pg.enum(ResumeState)
+userId Int
+user User @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id String @id @default(uuid())
+  userMsg String
+  assistMsg String
+  senderId Int?
+  organizationId String?
+  intervLink String?
+  interviewId String
+  createdAt DateTime @default(now())
+  sender User? @relation(fields: [senderId], references: [id])
+  interviewLink Interview? @relation("interviewLink",fields: [intervLink], references: [InterviewLink])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  interview Interview @relation("interview",fields: [interviewId], references: [id])
+}
+
+model Report {
+  id String @id @default(uuid())
+  interviewId String @unique
+  content String
+  createdAt DateTime @default(now())
+  interview Interview @relation(fields: [interviewId], references: [id])
+}
+
