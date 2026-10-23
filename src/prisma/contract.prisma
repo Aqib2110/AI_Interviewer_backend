@@ -35,7 +35,7 @@ model User {
   session     Session?
   interviews Interview[]? @relation("candidate")
   createdInterviews Interview[] @relation("createdBy")
-  subOrgs SubOrg[]
+  workspaces Workspace[]
   resume Resume[]
 }
 
@@ -44,12 +44,13 @@ model Organization {
   name        String
   adminId     Int
   createdAt   DateTime     @default(now())
-  subOrgs      SubOrg[]
+  workspaces     Workspace[]
   memberships Membership[]
   sessions    Session[]
   interviews Interview[]
   invitations OrgInvitation[]
   user        User @relation("OrgAdmin", fields: [adminId], references: [id])
+  candidates Candidate[]
 }
 
 
@@ -68,14 +69,13 @@ model OrgInvitation {
   @@unique([email, organizationId])
 }
 
-model SubOrg {
+model Workspace {
 id String @id @default(uuid())
 name String
 adminId Int
 orgId String?
 user User @relation(fields: [adminId], references: [id])
 organization Organization? @relation(fields: [orgId], references: [id])
-
 }
 
 model Membership {
@@ -97,59 +97,84 @@ model Session {
   currentTenantId String?
   createdAt       DateTime      @default(now())
   userId          Int           @unique
-
   organization    Organization? @relation(fields: [currentTenantId], references: [id])
   user            User          @relation(fields: [userId], references: [id])
 }
 
 model Interview {
-  id String @id @default(uuid())
-  title String
-  createdBy Int
+  id            String    @id @default(uuid())
+  title         String
+  createdBy     Int
   candidateEmail String
-  aiSessionId String?
-  description String
-  candidateId Int?
-  status pg.enum(State)
-  InterviewLink String?
-  slug String
-  skills String[]?
-  videoLink String?
-  startedAt DateTime?
-  endedAt DateTime?
-  tenantId String?
-  createdAt DateTime @default(now())
-  Report Report?
-  Message Message[] @relation("interview")
-  tenant Organization? @relation(fields: [tenantId], references: [id])
-  user User @relation("createdBy", fields: [createdBy], references: [id])
-  candidate User? @relation("candidate", fields: [candidateId], references: [id])
+  aiSessionId   String?
+  description   String
+  candidateId   Int?
+  status        pg.enum(State)
+  role          String
+  compName      String
+  score         Int?
+  slug          String
+  skills        String[]?
+  videoKey     String?
+  startedAt     DateTime?
+  endedAt       DateTime?
+  tenantId      String?
+  createdAt     DateTime  @default(now())
+  interviewcandidate   Candidate?
+  Report        Report?
+  Message       Message[] @relation("interview")
+  tenant        Organization? @relation(fields: [tenantId], references: [id])
+  user          User @relation("createdBy", fields: [createdBy], references: [id])
+  candidate     User? @relation("candidate", fields: [candidateId], references: [id])
 }
+
+model Message {
+  id             String    @id @default(uuid())
+  userMsg        String
+  aiMsg      String
+  senderId       Int?
+  organizationId String?
+  interviewId    String
+  createdAt      DateTime  @default(now())
+
+  sender         User? @relation(fields: [senderId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  interview      Interview @relation(
+    "interview",
+    fields: [interviewId],
+    references: [id]
+  )
+}
+
+
+model Candidate{
+  id String @id @default(uuid())
+  name String
+  location String?
+  experience String
+  phone String?
+  email String
+  currRole String
+  organizationId String 
+  createdAt DateTime @default(now())
+  interviewId String @unique
+  interview Interview @relation(fields: [interviewId], references: [id])
+  organization Organization @relation(fields: [organizationId],references: [id])
+}
+
+
 
 model Resume{
 id String @id @default(uuid())
 fileUrl String
 fileKey String
-skills String[]?
+skills String?
 status pg.enum(ResumeState)
 userId Int
 user User @relation(fields: [userId], references: [id])
 }
 
-model Message {
-  id String @id @default(uuid())
-  userMsg String
-  assistMsg String
-  senderId Int?
-  organizationId String?
-  intervLink String?
-  interviewId String
-  createdAt DateTime @default(now())
-  sender User? @relation(fields: [senderId], references: [id])
-  interviewLink Interview? @relation("interviewLink",fields: [intervLink], references: [InterviewLink])
-  organization Organization? @relation(fields: [organizationId], references: [id])
-  interview Interview @relation("interview",fields: [interviewId], references: [id])
-}
+
 
 model Report {
   id String @id @default(uuid())

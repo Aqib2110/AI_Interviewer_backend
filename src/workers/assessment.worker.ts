@@ -5,7 +5,7 @@ import { openai } from "../lib/openai";
 
 interface interviewMessage {
   userMsg: string;
-  assistMsg: string;
+  aiMsg: string;
 }
 
 const worker = new Worker(
@@ -32,7 +32,7 @@ const worker = new Worker(
         }
 
         const interviewMessages: interviewMessage[] = candidateInfo.Message.map(
-          (msg) => ({ userMsg: msg.userMsg, assistMsg: msg.assistMsg }),
+          (msg) => ({ userMsg: msg.userMsg, aiMsg: msg.aiMsg }),
         );
 
         const response = await openai.responses.create({
@@ -189,12 +189,18 @@ Rules:
           },
         });
 
-        const assessmentReport = response.output_text;
+        const assessmentReport = JSON.parse(response.output_text);
 
         await db.orm.public.Report.create({
           interviewId,
-          content: assessmentReport,
+          content: response.output_text,
         });
+
+        await db.orm.public.Interview.where({
+          id: interviewId
+        }).update({
+          score: assessmentReport?.overallScore
+        })
 
         console.log("AI assessment report generated");
       } catch (error) {
@@ -207,5 +213,7 @@ Rules:
       }
     }
   },
-  { connection: redis },
+  { connection: redis,
+    concurrency: 3
+   },
 );

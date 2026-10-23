@@ -2,7 +2,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { CreateMultipartUploadCommand } from "@aws-sdk/client-s3";
+import { CreateMultipartUploadCommand, CompleteMultipartUploadCommand } from "@aws-sdk/client-s3";
 import { UploadPartCommand } from "@aws-sdk/client-s3";
 
 export const s3Client = new S3Client({
@@ -18,7 +18,7 @@ export const uploadFileToS3 = async(fileName: String, fileBuffer: Buffer, mimeTy
    return await s3Client.send(
   new PutObjectCommand({
     Bucket: process.env.R2_BUCKET_NAME!,
-    Key: `documents/${fileName}`,
+    Key: `${fileName}`,
     Body: fileBuffer,
     ContentType: mimeType,
   }),
@@ -27,6 +27,7 @@ export const uploadFileToS3 = async(fileName: String, fileBuffer: Buffer, mimeTy
 }
 
 export const getFileFromS3 = async (key: string)=>{
+  console.log(key,process.env.R2_BUCKET_NAME,"key_bicket")
 const result = await s3Client.send(
     new GetObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME!,
@@ -98,4 +99,21 @@ for (let i = 0; i < count; i++) {
 
 return urls;
   
+}
+
+
+export const multiPartCompleted = async (key:string, uploadId:string, parts:{partNumber:number,etag:string}[])=>{
+ return await s3Client.send(
+  new CompleteMultipartUploadCommand({
+    Bucket: process.env.R2_BUCKET!,
+    Key: key,
+    UploadId: uploadId,
+    MultipartUpload: {
+      Parts: parts.map(part => ({
+        PartNumber: part.partNumber,
+        ETag: part.etag,
+      })),
+    },
+  })
+);
 }

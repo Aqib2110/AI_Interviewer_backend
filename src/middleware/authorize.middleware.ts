@@ -6,7 +6,7 @@ export const authorize =  (...allowedRoles: Role[]) => {
 
     return (req: Request,res: Response,next: NextFunction)=>{
 
-
+          console.log((req as any).user.role,"role")
         if(!allowedRoles.includes((req as any).user.role))
          {
             return res.status(403).json({

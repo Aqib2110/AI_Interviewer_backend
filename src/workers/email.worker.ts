@@ -1,4 +1,3 @@
-import { db } from "../prisma/db";
 import redis from "../lib/redis";
 import { Worker } from "bullmq";
 import { invitationEmailTemplate, interviewEmailTemplate, sendEmail } from "../lib/email";
@@ -31,4 +30,6 @@ console.error("Email sending error:", error);
 
 
 
-}, { connection: redis });
+}, { connection: redis,
+     concurrency: 3
+ });

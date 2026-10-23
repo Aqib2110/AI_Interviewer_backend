@@ -7,7 +7,7 @@ connection: redis
 });
 
 export const InterviewQueue = new Queue('Interview', {
-connection: redis
+connection: redis,
 });
 
 export const emailQueue = new Queue('Email', {

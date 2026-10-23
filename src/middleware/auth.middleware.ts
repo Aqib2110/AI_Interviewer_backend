@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-
+let number = 0;
 export const authMiddlware = (
   req: Request,
   res: Response,
@@ -8,32 +8,31 @@ export const authMiddlware = (
 ) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
+
+    if (!authHeader?.startsWith("Bearer ")) {
       return res.status(401).json({
-        message: "authorization Header is missing",
+        message: "Authorization header is missing or invalid",
       });
     }
-    const token = authHeader.split("Bearer")[1];
+
+    const token = authHeader.slice(7).trim();
+
+    console.log("token",token,"token")
 
     if (!token) {
       return res.status(401).json({
-        message: "token is missing",
+        message: "Token is missing",
       });
     }
-    const authUser = jwt.verify(token, process.env.JWT_SECRET as string) as {
+
+    const authUser = jwt.verify(token, process.env.JWT_SECRET!) as {
       id: number;
-      session: string;
+      sessionId: string;
       name: string;
       email: string;
     };
-    if (!authUser) {
-      return res.status(401).json({
-        message: "Invalid token",
-      });
-    }
-    // @ts-ignore
-    req.user = authUser;
 
+    (req as any).user = authUser;
     next();
   } catch (error) {
     next(error);

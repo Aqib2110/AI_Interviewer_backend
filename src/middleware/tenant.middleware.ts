@@ -10,7 +10,8 @@ export const isolateTenant = async (
   // @ts-ignore
   const userId = req.user.id;
   // @ts-ignore
-  const tenantId = req.user.tenantId;
+const tenantId = req.headers["x-tenant-id"]?.toString();
+   console.log(tenantId,"tenantId from frontend");
   let tenant;
   if (!userId || !tenantId) {
     return res.status(401).json({
@@ -52,6 +53,10 @@ export const isolateTenant = async (
     (req as any).user.role = tenantFound
       ? JSON.parse(tenantFound).role
       : tenant?.role;
+      const redisId = tenantFound ? JSON.parse(tenantFound).organizationId : null;
+      console.log(tenant?.organizationId,"db validated id ");
+     console.log(redisId,"redis validated id ");
+      next();
   } catch (error) {
     next(error);
   }
