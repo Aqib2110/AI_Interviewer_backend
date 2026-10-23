@@ -16,29 +16,14 @@ const worker = new Worker(
           })
           .update({
             endedAt: Temporal.Now.instant(),
+            status:"COMPELETED"
           });
 
         if (!interview) {
           throw new Error("Interview not found");
         }
 
-        const response = await fetch(
-          `https://api.openai.com/v1/realtime/calls/${interview.aiSessionId}/hangup`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          const error = await response.text();
-
-          throw new Error(
-            `Failed to hangup realtime call: ${response.status} ${error}`
-          );
-        }
+        
 
         await AIAssessmentQueue.add("skills_evaluation", {
           interviewId: interview.id,
@@ -53,5 +38,7 @@ const worker = new Worker(
       }
     }
   },
-  { connection: redis }
+  { connection: redis,
+     concurrency: 3
+   }
 );

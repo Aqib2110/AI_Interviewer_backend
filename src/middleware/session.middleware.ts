@@ -8,8 +8,10 @@ export const sessionContext = async (
   next: NextFunction,
 ) => {
   try {
-    const sessionId = (req as any).user.session;
-    let session;
+        let session;
+    const sessionId = (req as any).user.sessionId;
+    console.log("user:", (req as any).user);
+console.log("sessionId:", (req as any).user?.sessionId);
     const sessionFound = await redis.get(`session:${sessionId}`);
 
     if (!sessionFound) {
@@ -32,18 +34,34 @@ export const sessionContext = async (
         1000 * 60 * 60 * 24 * 7,
       );
     }
-
     const requestedTenantId = (req as any).user.tenantId;
+
     const currentTenantId = sessionFound
       ? JSON.parse(sessionFound).currentTenantId
       : session?.currentTenantId;
-
+    const redisId = sessionFound
+      ? JSON.parse(sessionFound).currentTenantId : null;
     if (!requestedTenantId && !currentTenantId) {
       return next();
     }
+    console.log(session?.currentTenantId,"db verified session Id");
+    console.log(redisId,"redis verified session id")
+    if (requestedTenantId && !currentTenantId) {
+      return res.status(401).json({
+        message:
+          "personal context, switch to an organization",
+      });
+    }
+     console.log(currentTenantId,"curr",requestedTenantId,"req")
 
+       console.log({
+  sessionId,
+  requestedTenantId,
+  currentTenantId,
+  source: sessionFound ? "redis" : "database",
+});
     if (
-      currentTenantId != requestedTenantId
+      currentTenantId !== requestedTenantId
     ) {
       return res.status(401).json({
         message:
@@ -51,8 +69,18 @@ export const sessionContext = async (
       });
     }
 
+
+    console.log({
+  sessionId,
+  requestedTenantId,
+  currentTenantId,
+  source: sessionFound ? "redis" : "database",
+});
+
     next();
   } catch (error) {
     next(error);
   }
 };
+
+

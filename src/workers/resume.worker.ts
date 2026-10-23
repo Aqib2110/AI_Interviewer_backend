@@ -11,6 +11,7 @@ const worker = new Worker(
     if (job.name === "process_Resume") {
       try {
         const { resumeId, userId, fileKey, fileType } = job.data;
+        console.log(fileKey,"filekey");
         let parsedResumeText = "";
         const response = await getFileFromS3(fileKey);
         const buffer = await response?.Body?.transformToByteArray();
@@ -32,12 +33,12 @@ const worker = new Worker(
           parsedResumeText = await parseDocxText(fileBuffer);
         }
 
-        const modelResponse = await openai.responses.create({
-          model: process.env.OPENAI_EVALUATION_MODEL!,
-          input: [
-            {
-              role: "system",
-              content: `
+  const modelResponse = await openai.chat.completions.create({
+  model: process.env.GEMINI_EVALUATION_MODEL!,
+  messages: [
+    {
+      role: "system",
+      content: `
 You are an expert resume skill extractor.
 
 Extract skills explicitly mentioned or clearly demonstrated in the supplied resume.
@@ -51,74 +52,84 @@ Rules:
 - Do not include duplicate skills.
 - Return only the structured assessment.
       `,
-            },
-            {
-              role: "user",
-              content: parsedResumeText,
-            },
-          ],
-          text: {
-            format: {
-              type: "json_schema",
-              name: "resume_skills",
-              strict: true,
-              schema: {
-                type: "object",
-                properties: {
-                  skills: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: {
-                          type: "string",
-                        },
-                        category: {
-                          type: "string",
-                          enum: [
-                            "Programming Language",
-                            "Framework",
-                            "Library",
-                            "Database",
-                            "Cloud",
-                            "DevOps",
-                            "Testing",
-                            "AI/ML",
-                            "Tool",
-                            "Other",
-                          ],
-                        },
-                        evidence: {
-                          type: "string",
-                        },
-                      },
-                      required: ["name", "category", "evidence"],
-                      additionalProperties: false,
-                    },
-                  },
+    },
+    {
+      role: "user",
+      content: parsedResumeText,
+    },
+  ],
+  response_format: {
+    type: "json_schema",
+    json_schema: {
+      name: "resume_skills",
+      strict: true,
+      schema: {
+        type: "object",
+        properties: {
+          skills: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: {
+                  type: "string",
                 },
-                required: ["skills"],
-                additionalProperties: false,
+                category: {
+                  type: "string",
+                  enum: [
+                    "Programming Language",
+                    "Framework",
+                    "Library",
+                    "Database",
+                    "Cloud",
+                    "DevOps",
+                    "Testing",
+                    "AI/ML",
+                    "Tool",
+                    "Other",
+                  ],
+                },
+                evidence: {
+                  type: "string",
+                },
               },
+              required: ["name", "category", "evidence"],
+              additionalProperties: false,
             },
           },
-        });
+        },
+        required: ["skills"],
+        additionalProperties: false,
+      },
+    },
+  },
+});
 
-        const skills = JSON.parse(modelResponse.output_text);
+const content = modelResponse?.choices[0]?.message.content;
+
+if (!content) {
+  throw new Error("Failed to extract resume skills");
+}
+      const result  = JSON.parse(content);
+    
+
 
         await db.orm.public.Resume.where({
           id: resumeId,
           userId: userId,
         }).update({
           status: "PROCESSED",
-          skills: skills,
+          skills:JSON.stringify(result.skills)
         });
       } catch (error) {
         console.error("Error processing resume:", error);
       }
     }
   },
-  { connection: redis },
+  { 
+    connection: redis,
+     concurrency: 3
+   },
 );
 
 worker.on("failed", async (job, error) => {
