@@ -75,7 +75,7 @@ export const createOrgInterview = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { title, email, description, skills, compName, role } = req.body;
+  const { title, email, description, skills, compName, role,durationMinutes } = req.body;
 
   if (!title || !description || !skills) {
     return res.status(401).json({
@@ -84,6 +84,7 @@ export const createOrgInterview = async (
   }
 
   const slug = randomBytes(16).toString("hex");
+  
   try {
     await createOrgInterviewService(
       title,
@@ -95,6 +96,7 @@ export const createOrgInterview = async (
       slug,
       role,
       compName,
+      durationMinutes
     );
 
     await emailQueue.add("sendInterviewEmail", {
@@ -162,7 +164,7 @@ export const createUserInterview = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { title, description, skills, role, compName } = req.body;
+  const { title, description, skills, role, compName,durationMinutes } = req.body;
 
   if (!title || !description) {
     return res.status(401).json({
@@ -180,6 +182,7 @@ export const createUserInterview = async (
       skills,
       role,
       compName,
+      durationMinutes
     );
 
     return res.status(200).json({
@@ -311,7 +314,7 @@ export const createInterviewUpload = async (
   }
 };
 
-export const createInterviewVideoSignedUrls = async (
+export const getInterviewVideoSignedUrls = async (
   req: Request,
   res: Response,
   next: NextFunction,

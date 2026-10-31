@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'5c3359be73309ac4155444ef8dbf01c2e30cc95d4933f1ce1567453578fe7430'>;
+  StorageHashBase<'178de505b1cf681cd4a1b0d7fa340664d41f180e2e86bfa1a5cd4a15f7727bd1'>;
 export type ExecutionHash =
   ExecutionHashBase<'b0513cc9d10c51242ab4caedffed47632053654ea009f857b62437bc149ff9ac'>;
 export type ProfileHash =
@@ -270,6 +270,7 @@ export type FieldOutputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly createdBy: CodecTypes['pg/int4@1']['output'];
       readonly description: CodecTypes['pg/text@1']['output'];
+      readonly durationMinutes: CodecTypes['pg/int4@1']['output'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly role: CodecTypes['pg/text@1']['output'];
@@ -281,6 +282,7 @@ export type FieldOutputTypes = {
       readonly tenantId: CodecTypes['pg/text@1']['output'] | null;
       readonly title: CodecTypes['pg/text@1']['output'];
       readonly videoKey: CodecTypes['pg/text@1']['output'] | null;
+      readonly viedoUrl: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly Membership: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -373,6 +375,7 @@ export type FieldInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly createdBy: CodecTypes['pg/int4@1']['input'];
       readonly description: CodecTypes['pg/text@1']['input'];
+      readonly durationMinutes: CodecTypes['pg/int4@1']['input'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly role: CodecTypes['pg/text@1']['input'];
@@ -384,6 +387,7 @@ export type FieldInputTypes = {
       readonly tenantId: CodecTypes['pg/text@1']['input'] | null;
       readonly title: CodecTypes['pg/text@1']['input'];
       readonly videoKey: CodecTypes['pg/text@1']['input'] | null;
+      readonly viedoUrl: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly Membership: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -476,6 +480,7 @@ export type StorageColumnTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly createdBy: CodecTypes['pg/int4@1']['output'];
       readonly description: CodecTypes['pg/text@1']['output'];
+      readonly durationMinutes: CodecTypes['pg/int4@1']['output'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly role: CodecTypes['pg/text@1']['output'];
@@ -487,6 +492,7 @@ export type StorageColumnTypes = {
       readonly tenantId: CodecTypes['pg/text@1']['output'] | null;
       readonly title: CodecTypes['pg/text@1']['output'];
       readonly videoKey: CodecTypes['pg/text@1']['output'] | null;
+      readonly viedoUrl: CodecTypes['pg/text@1']['output'] | null;
     };
     readonly Membership: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -579,6 +585,7 @@ export type StorageColumnInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly createdBy: CodecTypes['pg/int4@1']['input'];
       readonly description: CodecTypes['pg/text@1']['input'];
+      readonly durationMinutes: CodecTypes['pg/int4@1']['input'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly role: CodecTypes['pg/text@1']['input'];
@@ -590,6 +597,7 @@ export type StorageColumnInputTypes = {
       readonly tenantId: CodecTypes['pg/text@1']['input'] | null;
       readonly title: CodecTypes['pg/text@1']['input'];
       readonly videoKey: CodecTypes['pg/text@1']['input'] | null;
+      readonly viedoUrl: CodecTypes['pg/text@1']['input'] | null;
     };
     readonly Membership: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -685,6 +693,7 @@ export namespace Models {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     createdBy: CodecTypes['pg/int4@1']['output'];
     description: CodecTypes['pg/text@1']['output'];
+    durationMinutes: CodecTypes['pg/int4@1']['output'];
     endedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
     id: CodecTypes['pg/text@1']['output'];
     role: CodecTypes['pg/text@1']['output'];
@@ -696,6 +705,7 @@ export namespace Models {
     tenantId: CodecTypes['pg/text@1']['output'] | null;
     title: CodecTypes['pg/text@1']['output'];
     videoKey: CodecTypes['pg/text@1']['output'] | null;
+    viedoUrl: CodecTypes['pg/text@1']['output'] | null;
     Message: public_Message[];
     Report: public_Report | null;
     candidate: public_User | null;
@@ -987,6 +997,11 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
+                readonly durationMinutes: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
                 readonly endedAt: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-temporal@1';
@@ -1039,6 +1054,11 @@ type ContractBase = Omit<
                   readonly nullable: false;
                 };
                 readonly videoKey: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly viedoUrl: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
@@ -1872,6 +1892,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly durationMinutes: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly endedAt: {
                 readonly nullable: true;
                 readonly type: {
@@ -1924,6 +1948,10 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly videoKey: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly viedoUrl: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
@@ -2006,6 +2034,7 @@ type ContractBase = Omit<
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly createdBy: { readonly column: 'createdBy' };
                 readonly description: { readonly column: 'description' };
+                readonly durationMinutes: { readonly column: 'durationMinutes' };
                 readonly endedAt: { readonly column: 'endedAt' };
                 readonly id: { readonly column: 'id' };
                 readonly role: { readonly column: 'role' };
@@ -2017,6 +2046,7 @@ type ContractBase = Omit<
                 readonly tenantId: { readonly column: 'tenantId' };
                 readonly title: { readonly column: 'title' };
                 readonly videoKey: { readonly column: 'videoKey' };
+                readonly viedoUrl: { readonly column: 'viedoUrl' };
               };
             };
           };

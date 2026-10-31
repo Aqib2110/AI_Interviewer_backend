@@ -110,12 +110,14 @@ model Interview {
   description   String
   candidateId   Int?
   status        pg.enum(State)
+  durationMinutes      Int
   role          String
   compName      String
   score         Int?
   slug          String
   skills        String[]?
   videoKey     String?
+  viedoUrl    String?
   startedAt     DateTime?
   endedAt       DateTime?
   tenantId      String?

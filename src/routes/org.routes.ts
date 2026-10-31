@@ -11,10 +11,13 @@ import {
   createOrgWorkspace,
   deleteOrgMemberRole,
   getOrgWorkspaces,
+  getOrgInvitations,
   orgInvitationAccept,
   updateOrgMemberRole,
   getOrgDashOverview,
-  getOrgCandidates
+  getOrgCandidates,
+  getCandidateInfo,
+  getOrgMembers
 } from "../controllers/org.controller";
 
 export const orgRouter = Router();
@@ -71,6 +74,24 @@ orgRouter.delete(
   deleteOrgMemberRole,
 );
 
+orgRouter.get(
+  "/organization/members",
+  authMiddlware,
+  isolateTenant,
+  sessionContext,
+  authorize("ADMIN","HR"),
+  getOrgMembers,
+);
+
+orgRouter.get(
+  "/organization/invitations",
+  authMiddlware,
+  isolateTenant,
+  sessionContext,
+  authorize("ADMIN","HR"),
+  getOrgInvitations,
+);
+
 
 orgRouter.get(
   "/organization/:orgId/dashboard/overview",
@@ -87,3 +108,10 @@ orgRouter.get(
   sessionContext,
   getOrgCandidates
 );
+
+orgRouter.get("/organization/candidate/:id",
+   authMiddlware,
+  isolateTenant,
+  sessionContext,
+  getCandidateInfo
+)

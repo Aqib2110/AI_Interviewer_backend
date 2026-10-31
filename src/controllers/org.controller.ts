@@ -8,7 +8,10 @@ import {
   deleteOrgMemberRole as deleteOrgMemberRoleService,
   updateOrgMemberRole as updateOrgMemberRoleService,
   getOrgDashOverview as getOrgDashOverviewService,
-  getOrgCandidates as getOrgCandidatesService
+  getOrgCandidates as getOrgCandidatesService,
+  getCandidateInfo as getCandidateInfoService,
+  getOrgMembers as getOrgMembersService,
+  getOrgInvitations as getOrgInvitationsService
 } from "../services/org.service";
 import { AppError } from "../Errors/App.error";
 
@@ -150,16 +153,15 @@ export const deleteOrgMemberRole = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { memberId, role } = req.body;
+  const { memberId } = req.body;
 
-  if (!memberId || !role) {
-    throw new AppError("memberId and role are required", 401);
+  if (!memberId ) {
+    throw new AppError("memberId is required", 401);
   }
 
   try {
     await deleteOrgMemberRoleService(
       memberId,
-      role,
       (req as any).user.tenantId,
     );
 
@@ -200,6 +202,69 @@ export const getOrgDashOverview = async(
     next(error);
   }
 }
+
+
+export const getCandidateInfo = async(
+    req: Request,
+  res: Response,
+  next: NextFunction,
+)=>{
+ try {
+   const id = req.params.id?.toString();
+
+  if(!id)
+  {
+    throw new AppError("id is required",403);
+  }
+
+  const candidate = await getCandidateInfoService(id);
+
+  return res.status(200).json({
+    candidate
+  })
+ } catch (error) {
+    next(error)
+ }
+
+}
+
+
+export const getOrgInvitations = async(
+    req: Request,
+  res: Response,
+  next: NextFunction,
+)=>{
+ try {
+    const tenantId = (req as any).user.tenantId;
+
+ const invitations = await getOrgInvitationsService(tenantId,(req as any).user.id);
+
+    return res.status(200).json({
+     invitations
+    })
+  } catch (error) {
+    next(error);
+  }
+}
+
+export const getOrgMembers = async(
+    req: Request,
+  res: Response,
+  next: NextFunction,
+)=>{
+ try {
+    const tenantId = (req as any).user.tenantId;
+
+ const members = await getOrgMembersService(tenantId,(req as any).user.id);
+
+    return res.status(200).json({
+     members
+    })
+  } catch (error) {
+    next(error);
+  }
+}
+
 
 
 
