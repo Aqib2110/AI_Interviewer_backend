@@ -6,6 +6,8 @@ import { AppError } from "../Errors/App.error";
 import { randomBytes } from "crypto";
 import redis from "../lib/redis";
 import { geminiLiveSession } from "../lib/gemini";
+import { getSignedUrlFromS3 } from "../lib/s3";
+import { interview } from "../routes/interview.routes";
 
 export const createOrgInterviewSession = async (
   slug: string,
@@ -29,15 +31,17 @@ export const createOrgInterviewSession = async (
 
   const token = await geminiLiveSession(candidateInterview?.description,candidateInterview?.skills);
 
-const now = Temporal.Now.instant(); 
+  const now = Temporal.Now.instant(); 
 
+ const videoKey = `interviews/${candidateInterview?.id}/recording.webm`;
 
   await db.orm.public.Interview.where({
     id: candidateInterview.id,
   }).update({
     aiSessionId: JSON.stringify(token),
     status: "IN_PROGRESS",
-    startedAt: now
+    startedAt: now,
+    videoKey: videoKey
   });
 
   await InterviewQueue.add(
@@ -87,6 +91,7 @@ export const createUserInterviewSession = async (
   }
 
   const token = await geminiLiveSession(candidateInterview?.description,candidateInterview?.skills);
+ const videoKey = `interviews/${candidateInterview?.id}/recording.webm`;
 
   await db.orm.public.Interview.where({
     id: candidateInterview.id,
@@ -94,6 +99,7 @@ export const createUserInterviewSession = async (
     aiSessionId: JSON.stringify(token),
     status: "IN_PROGRESS",
     startedAt: Temporal.Now.instant(),
+    videoKey
   });
 
   await InterviewQueue.add(
@@ -118,7 +124,8 @@ export const createOrgInterview = async (
   orgId: string,
   slug: string,
   role: string,
-  compName:string
+  compName:string,
+  durationMinutes:number
 ) => {
   return await db.orm.public.Interview.create({
     title,
@@ -131,6 +138,7 @@ export const createOrgInterview = async (
     role,
     compName,
     slug,
+    durationMinutes
   });
 };
 
@@ -146,14 +154,29 @@ export const getOrgInterviewDetails = async (
   tenantId: string,
   slug: string,
 ) => {
-  return await db.orm.public.Interview.where({
-    tenantId: tenantId,
+  const interview = await db.orm.public.Interview.where({
+    tenantId,
     slug,
   })
+    .include("interviewcandidate")
     .include("Message")
     .include("Report")
     .first();
+
+  if (!interview) {
+    throw new AppError("Interview not found", 404);
+  }
+
+  const videoUrl = interview.videoKey
+    ? await getSignedUrlFromS3(interview.videoKey)
+    : null;
+
+  return {
+    ...interview,
+    videoUrl,
+  };
 };
+
 
 export const createUserInterview = async (
   title: string,
@@ -163,7 +186,9 @@ export const createUserInterview = async (
   tenantId: string,
   skills: [],
   role:string,
-  compName:string
+  compName:string,
+  durationMinutes:number
+
 ) => {
   const slug = randomBytes(16).toString("hex");
 
@@ -179,6 +204,7 @@ export const createUserInterview = async (
     role,
     compName,
     slug,
+    durationMinutes
   });
 };
 
@@ -192,13 +218,23 @@ export const getUserInterviews = async (userId: number) => {
 
 export const getUserInterviewDetails = async (userId: number, slug: string) => {
   console.log(userId,slug,"info")
-  return await db.orm.public.Interview.where({
+  const interview = await db.orm.public.Interview.where({
     candidateId: userId,
     slug,
   })
     .include("Message")
     .include("Report")
     .first();
+
+    const videoUrl = interview?.videoKey
+    ? await getSignedUrlFromS3(interview?.videoKey)
+    : null;
+
+  return {
+    ...interview,
+    videoUrl,
+  };
+
 };
 
 export const createOrgCandidate = async(name:string,location:string,experience:string,phone:string,currRole:string,slug:string,tenantId:string)=>{
@@ -241,12 +277,40 @@ export const createUserInterviewMsg = async (
   userMsg: string,
   aiMsg: string,
 ) => {
-  return await db.orm.public.Message.create({
+
+   const interviewFound = await redis.get(`interview:${interviewId}`);
+
+  if (!interviewFound) {
+    const interview = await db.orm.public.Interview.where({
+      id: interviewId,
+      createdBy: senderId
+    }).first();
+
+    if (!interview) {
+      throw new AppError("interview not found", 404);
+    }
+    await redis.set(
+      `interview:${interview?.id}`,
+      JSON.stringify({
+        slug: interview?.slug,
+        interviewId: interview?.id,
+      }),
+      "PX",
+      5 * 60 * 1000,
+    );
+  }
+  const interview = interviewFound && JSON.parse(interviewFound);
+  if (interview && interview?.interviewId !== interviewId) {
+    throw new AppError("interview id doesn't match", 403);
+  }
+
+  await db.orm.public.Message.create({
     senderId: senderId,
     interviewId,
     userMsg,
     aiMsg:aiMsg,
   });
+
 };
 
 export const createOrgInterviewMsg = async (
@@ -269,9 +333,9 @@ export const createOrgInterviewMsg = async (
       throw new AppError("interview not found", 404);
     }
     await redis.set(
-      `interview:${interviewId}`,
+      `interview:${interview?.id}`,
       JSON.stringify({
-        interview: interview?.slug,
+        slug: interview?.slug,
         interviewId: interview?.id,
       }),
       "PX",

@@ -2,6 +2,8 @@ import { db } from "../prisma/db";
 import { randomBytes } from "crypto";
 import { emailQueue } from "../lib/queue";
 import { AppError } from "../Errors/App.error";
+import { and } from '@prisma/orm-postgres/orm-client';
+
 
 type OrgDashOverview = {
   stats: {
@@ -140,15 +142,46 @@ export const updateOrgMemberRole = async (
 
 export const deleteOrgMemberRole = async (
   memberId: number,
-  role: any,
   orgId: string,
 ) => {
   return await db.orm.public.Membership.where({
     userId: memberId,
     organizationId: orgId,
-    role: role,
   }).delete();
 };
+
+
+export const getCandidateInfo = async (id: string) => {
+  return db.orm.public.Interview
+    .where((iv) => iv.interviewcandidate.some({ id: id }))
+    .include("interviewcandidate")
+    .include("Report")
+    .all();
+};
+
+
+
+export const getOrgInvitations = async(tenantId:string,userId:number)=>{
+  return db.orm.public.Organization.where({
+    id:tenantId,
+    adminId: userId
+  }).include("invitations").all();
+}
+
+
+
+export const getOrgMembers = async (
+  tenantId: string,
+  userId: number
+) => {
+  return db.orm.public.Membership
+    .where((m) => and(
+      m.organizationId.eq(tenantId),
+      m.userId.neq(userId),
+    ))
+    .all();
+};
+
 
 
 

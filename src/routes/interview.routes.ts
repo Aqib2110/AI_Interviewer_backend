@@ -16,7 +16,7 @@ import {
   createUserInterviewMsg,
   createOrgInterviewMsg,
   createInterviewUpload,
-  createInterviewVideoSignedUrls,
+  getInterviewVideoSignedUrls,
   createInterviewVideoComplete,
   createOrgCandidate
 } from "../controllers/interview.controller";
@@ -76,6 +76,7 @@ interview.get(
   getUserInterviews,
 );
 
+
 interview.get(
   "/user/interview/:slug",
   authMiddlware,
@@ -97,7 +98,7 @@ interview.post("/organization/interview/candidate", createOrgCandidate);
 
 interview.post("/interview/upload/start", createInterviewUpload);
 
-interview.post("/interview/video/sign-url", createInterviewVideoSignedUrls);
+interview.post("/interview/video/sign-url", getInterviewVideoSignedUrls);
 
 interview.post("/interview/upload/complete", createInterviewVideoComplete);
 

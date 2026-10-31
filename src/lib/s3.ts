@@ -4,6 +4,9 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { CreateMultipartUploadCommand, CompleteMultipartUploadCommand } from "@aws-sdk/client-s3";
 import { UploadPartCommand } from "@aws-sdk/client-s3";
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export const s3Client = new S3Client({
   region: "auto",
@@ -41,7 +44,7 @@ const result = await s3Client.send(
 export const getSignedUrlFromS3 = async (key: string)=>{
 const url = await getSignedUrl(
 	s3Client,
-	new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME,  Key: `documents/${key}`, }),
+	new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME,  Key: key, }),
 	{ expiresIn: 3600 }, 
 );
 
@@ -74,15 +77,15 @@ const { UploadId } = await s3Client.send(
 return UploadId;
 }
 
-export const uploadPart = async (key: string, uploadId: string, partNumber: number, startPart=1,count=1) => {
+export const uploadPart = async (key: string, uploadId: string, startPart=1,count=1) => {
 const urls = [];
 
 for (let i = 0; i < count; i++) {
   const partNumber = startPart + i;
 
   const command = new UploadPartCommand({
-    Bucket: process.env.R2_BUCKET!,
-    Key: key,
+    Bucket: process.env.R2_BUCKET_NAME!,
+    Key: `interviews/${key}/recording.webm`,
     UploadId: uploadId,
     PartNumber: partNumber,
   });
@@ -105,8 +108,8 @@ return urls;
 export const multiPartCompleted = async (key:string, uploadId:string, parts:{partNumber:number,etag:string}[])=>{
  return await s3Client.send(
   new CompleteMultipartUploadCommand({
-    Bucket: process.env.R2_BUCKET!,
-    Key: key,
+    Bucket: process.env.R2_BUCKET_NAME!,
+    Key: `interviews/${key}/recording.webm`,
     UploadId: uploadId,
     MultipartUpload: {
       Parts: parts.map(part => ({

@@ -160,7 +160,7 @@ export const getPublicReport = async (token: string) => {
       "createdAt",
       "tenantId",
       "endedAt")
-      .include("candidate")
+      .include("interviewcandidate")
     .include("Message")
     .include("Report")
     .first();
