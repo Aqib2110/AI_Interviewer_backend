@@ -1,23 +1,54 @@
-import { Resend } from 'resend';
-console.log(process.env.RESEND_API_KEY);
-const resend = new Resend("re_ExyczHjs_6HDXinTDKDadfJ2uYcWMT23J");
+// import { Resend } from 'resend';
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+dotenv.config();
+console.log(process.env.GMAIL_USER,"email");
+// const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const sendEmail = async (to: string, subject: string, html: string) => {
-
-try{
-    await resend.emails.send({
-  from: 'onboarding@resend.dev',
-  to: to,
-  subject: subject,
-  html: html
+export const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
 });
-}
-catch(error)
-{
-console.error("Email sending error:", error);
-}
 
-}
+export const sendEmail = async (
+  to: string,
+  subject: string,
+  html: string
+) => {
+  console.log("1. Email function started");
+  console.log("2. Gmail user:", process.env.GMAIL_USER);
+  console.log("3. Recipient:", to);
+
+  try {
+    console.log("4. Checking SMTP connection...");
+
+    await transporter.verify();
+
+    console.log("5. SMTP connection successful");
+
+    const info = await transporter.sendMail({
+      from: `"Intervia" <${process.env.GMAIL_USER}>`,
+      to,
+      subject,
+      html,
+    });
+
+    console.log("6. Email sent successfully:", {
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      response: info.response,
+    });
+
+    return info;
+  } catch (error) {
+    console.error("EMAIL ERROR:", error);
+    throw error;
+  }
+};
 
 export const interviewEmailTemplate = ({
   interviewLink,
