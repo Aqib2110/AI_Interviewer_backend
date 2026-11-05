@@ -2,7 +2,7 @@ import {
   ListMultipartUploadsCommand,
   AbortMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
-import { s3Client } from "./s3";
+import { s3Client } from "./s3.js";
 const bucket = process.env.R2_BUCKET_NAME!;
 
 async function cleanupIncompleteUploads(dryRun = true) {

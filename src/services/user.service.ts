@@ -1,8 +1,8 @@
-import { db } from "../prisma/db";
-import { ResumeQueue } from "../lib/queue";
-import { uploadFileToS3 } from "../lib/s3";
-import { AppError } from "../Errors/App.error";
-import redis from "../lib/redis";
+import { db } from "../prisma/db.js";
+import { ResumeQueue } from "../lib/queue.js";
+import { uploadFileToS3 } from "../lib/s3.js";
+import { AppError } from "../Errors/App.error.js";
+import redis from "../lib/redis.js";
 
 
 type UserDashOverview = {

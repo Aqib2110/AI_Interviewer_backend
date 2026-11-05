@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import { OpenAIError } from "../Errors/openi.error";
-import { AppError } from "../Errors/App.error";
+import { OpenAIError } from "../Errors/openi.error.js";
+import { AppError } from "../Errors/App.error.js";
 
 export const openai = new OpenAI({
   apiKey: process.env.GEMINI_API_KEY,

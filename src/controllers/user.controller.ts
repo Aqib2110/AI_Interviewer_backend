@@ -10,8 +10,8 @@ import {
   getUserOrganizations as getUserOrganizationsService,
   getUserDashOverview as getUserDashOverviewService,
   getPublicReport as getPublicReportService
-} from "../services/user.service";
-import { AppError } from "../Errors/App.error";
+} from "../services/user.service.js";
+import { AppError } from "../Errors/App.error.js";
 
 export const createUser = async (
   req: Request,

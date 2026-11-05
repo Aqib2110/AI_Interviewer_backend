@@ -1,9 +1,9 @@
 import express from "express";
-import { auth } from "./routes/auth.routes";
-import { globalErrorHandler } from "./middleware/error.middleware";
-import { orgRouter } from "./routes/org.routes";
-import { userRouter } from "./routes/user.routes";
-import { interview } from "./routes/interview.routes";
+import { auth } from "./routes/auth.routes.js";
+import { globalErrorHandler } from "./middleware/error.middleware.js";
+import { orgRouter } from "./routes/org.routes.js";
+import { userRouter } from "./routes/user.routes.js";
+import { interview } from "./routes/interview.routes.js";
 import cookieParser from "cookie-parser";
 
 import cors from "cors";

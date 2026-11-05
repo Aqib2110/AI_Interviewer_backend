@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { isolateTenant } from "../middleware/tenant.middleware";
-import { authorize } from "../middleware/authorize.middleware";
-import { sessionContext } from "../middleware/session.middleware";
-import { authMiddlware } from "../middleware/auth.middleware";
+import { isolateTenant } from "../middleware/tenant.middleware.js";
+import { authorize } from "../middleware/authorize.middleware.js";
+import { sessionContext } from "../middleware/session.middleware.js";
+import { authMiddlware } from "../middleware/auth.middleware.js";
 
 import {
   createOrgInterviewSession,
@@ -19,7 +19,7 @@ import {
   getInterviewVideoSignedUrls,
   createInterviewVideoComplete,
   createOrgCandidate
-} from "../controllers/interview.controller";
+} from "../controllers/interview.controller.js";
 
 export const interview = Router();
 

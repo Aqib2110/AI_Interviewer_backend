@@ -1,7 +1,7 @@
-import { db } from "../prisma/db";
+import { db } from "../prisma/db.js";
 import { randomBytes } from "crypto";
-import { emailQueue } from "../lib/queue";
-import { AppError } from "../Errors/App.error";
+import { emailQueue } from "../lib/queue.js";
+import { AppError } from "../Errors/App.error.js";
 import { and } from '@prisma/orm-postgres/orm-client';
 
 

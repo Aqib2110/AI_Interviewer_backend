@@ -1,7 +1,7 @@
-import { db } from "../prisma/db";
-import redis from "../lib/redis";
+import { db } from "../prisma/db.js";
+import redis from "../lib/redis.js";
 import { Worker } from "bullmq";
-import { openai } from "../lib/openai";
+import { openai } from "../lib/openai.js";
 
 interface interviewMessage {
   userMsg: string;

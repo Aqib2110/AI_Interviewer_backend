@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { db } from "../prisma/db";
-import redis from "../lib/redis";
+import { db } from "../prisma/db.js";
+import redis from "../lib/redis.js";
 
 export const sessionContext = async (
   req: Request,

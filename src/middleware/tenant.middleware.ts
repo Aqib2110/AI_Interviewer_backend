@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import db from "../lib/prisma";
-import redis from "../lib/redis";
+import db from "../lib/prisma.js";
+import redis from "../lib/redis.js";
 
 export const isolateTenant = async (
   req: Request,

@@ -1,13 +1,13 @@
-import { sessionConfig } from "../lib/openai";
-import { db } from "../prisma/db";
-import { InterviewQueue } from "../lib/queue";
-import { OpenAIError } from "../Errors/openi.error";
-import { AppError } from "../Errors/App.error";
+import { sessionConfig } from "../lib/openai.js";
+import { db } from "../prisma/db.js";
+import { InterviewQueue } from "../lib/queue.js";
+import { OpenAIError } from "../Errors/openi.error.js";
+import { AppError } from "../Errors/App.error.js";
 import { randomBytes } from "crypto";
-import redis from "../lib/redis";
-import { geminiLiveSession } from "../lib/gemini";
-import { getSignedUrlFromS3 } from "../lib/s3";
-import { interview } from "../routes/interview.routes";
+import redis from "../lib/redis.js";
+import { geminiLiveSession } from "../lib/gemini.js";
+import { getSignedUrlFromS3 } from "../lib/s3.js";
+import { interview } from "../routes/interview.routes.js";
 
 export const createOrgInterviewSession = async (
   slug: string,

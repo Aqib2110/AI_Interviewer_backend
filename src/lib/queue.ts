@@ -1,7 +1,6 @@
 import { Queue } from 'bullmq';
-import redis from './redis'
+import redis from './redis.js'
 
-console.log("redis",redis)
 export const ResumeQueue = new Queue('Resume', {
 connection: redis
 });
