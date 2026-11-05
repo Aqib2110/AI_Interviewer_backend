@@ -1,12 +1,29 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-let number = 0;
 export const authMiddlware = (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
+     const allowedOrigins = process.env.FRONTEND_URLS
+      ?.split(",")
+      .map(origin => origin.trim().replace(/\/$/, ""));
+
+    if (!allowedOrigins?.length) {
+      return res.status(500).json({
+        message: "FRONTEND_URL is not configured",
+      });
+    }
+
+    const requestOrigin = req.headers.origin;
+
+    if (!requestOrigin || !allowedOrigins.includes(requestOrigin)) {
+      return res.status(403).json({
+        message: "Origin not allowed",
+      });
+    }
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith("Bearer ")) {

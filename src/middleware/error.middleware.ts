@@ -2,7 +2,7 @@ import { S3ServiceException } from "@aws-sdk/client-s3";
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import multer from "multer";
-import { AppError } from "../Errors/App.error";
+import { AppError } from "../Errors/App.error.js";
 
 export const globalErrorHandler = (
   err: any,

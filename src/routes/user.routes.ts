@@ -1,13 +1,13 @@
 import { Router} from 'express';
-import { sessionContext } from '../middleware/session.middleware';
-import { authMiddlware } from '../middleware/auth.middleware';
+import { sessionContext } from '../middleware/session.middleware.js';
+import { authMiddlware } from '../middleware/auth.middleware.js';
 import multer from "multer";
 import { createUser, createUserWorkspace, getUserWorkspaces, uploadUserResume,getUserResume,
    getDashboardData, 
    getUserOrganizations,
    getUserDashOverview,
    switchContext,
-  getPublicReport} from '../controllers/user.controller';
+  getPublicReport} from '../controllers/user.controller.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),

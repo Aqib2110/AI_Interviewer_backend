@@ -1,52 +1,12 @@
-// import redis from "../lib/redis";
-// import { Worker } from "bullmq";
-// import { invitationEmailTemplate, interviewEmailTemplate, sendEmail } from "../lib/email";
-
-
-// const worker = new Worker("Email", async (job) => {
-//     console.log("Email worker received job:", job.name, "with data:", job.data);
-// if (job.name === "sendInvitationEmail") {
-// try{
-//     const { email, link } = job.data;
-     
-//     const html = invitationEmailTemplate(link);
-//     await sendEmail(email, "You're invited to join our organization", html);
-// }
-// catch(error){
-// console.error("Email sending error:", error);
-// }
-// }
-
-// if (job.name === "sendInterviewEmail") {
-// try{
-//     console.log("Preparing to send interview email...");
-//     const { link, companyName, role, email } = job.data;
-     
-//     const html = interviewEmailTemplate({ interviewLink: link, companyName, jobRole: role });
-//         console.log("Sending invitation email to:", email);
-
-//     await sendEmail(email, "Invitation for Interview", html);
-//         console.log("Invitation email sent successfully to:", email);
-
-// }
-// catch(error){
-// console.error("Email sending error:", error);
-// }
-// }
-
-
-
-// }, { connection: redis,
-//      concurrency: 3
-//  });
-import "dotenv/config";
-import redis from "../lib/redis";
+import dotenv from "dotenv";
+dotenv.config();
+import redis from "../lib/redis.js";
 import { Worker } from "bullmq";
 import {
   invitationEmailTemplate,
   interviewEmailTemplate,
   sendEmail,
-} from "../lib/email";
+} from "../lib/email.js";
 
 console.log("Email worker file loaded");
 

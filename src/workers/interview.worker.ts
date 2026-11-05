@@ -1,7 +1,7 @@
-import { db } from "../prisma/db";
-import redis from "../lib/redis";
+import { db } from "../prisma/db.js";
+import redis from "../lib/redis.js";
 import { Worker } from "bullmq";
-import { AIAssessmentQueue } from "../lib/queue";
+import { AIAssessmentQueue } from "../lib/queue.js";
 
 const worker = new Worker(
   "Interview",

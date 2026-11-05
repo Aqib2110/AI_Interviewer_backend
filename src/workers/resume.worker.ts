@@ -1,9 +1,9 @@
-import { db } from "../prisma/db";
-import redis from "../lib/redis";
+import { db } from "../prisma/db.js";
+import redis from "../lib/redis.js";
 import { Worker } from "bullmq";
-import { getFileFromS3 } from "../lib/s3";
-import { parsePdfText, parseDocxText } from "../lib/parse";
-import { openai } from "../lib/openai";
+import { getFileFromS3 } from "../lib/s3.js";
+import { parsePdfText, parseDocxText } from "../lib/parse.js";
+import { openai } from "../lib/openai.js";
 
 const worker = new Worker(
   "Resume",

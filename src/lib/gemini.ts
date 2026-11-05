@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { AppError } from "../Errors/App.error";
+import { AppError } from "../Errors/App.error.js";
 import { Modality } from '@google/genai';
 
 export const gemini = new GoogleGenAI({

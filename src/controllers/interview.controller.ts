@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError } from "../Errors/App.error";
-import { emailQueue } from "../lib/queue";
+import { AppError } from "../Errors/App.error.js";
+import { emailQueue } from "../lib/queue.js";
 import { randomBytes } from "crypto";
 import {
   createOrgInterviewSession as createOrgInterviewSessionService,
@@ -14,13 +14,12 @@ import {
   createOrgInterviewMsg as createOrgInterviewMsgService,
   createOrgCandidate as createOrgCandidateService,
   getUserInterviewDetails as getUserInterviewDetailsService,
-} from "../services/interview.service";
+} from "../services/interview.service.js";
 import {
   createMultipartUpload,
   uploadPart,
   multiPartCompleted,
-} from "../lib/s3";
-import { tryCatch } from "bullmq";
+} from "../lib/s3.js";
 
 export const createOrgInterviewSession = async (
   req: Request,

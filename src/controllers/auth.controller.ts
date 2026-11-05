@@ -3,8 +3,8 @@ import {
   loginService,
   logoutService,
   refreshTokenService,
-} from "../services/auth.service";
-import { AppError } from "../Errors/App.error";
+} from "../services/auth.service.js";
+import { AppError } from "../Errors/App.error.js";
 
 const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -18,7 +18,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: 60 * 60 * 1000,
       path: "/"
     });
@@ -40,6 +40,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
+
 const logout = async (req: Request, res: Response, next: NextFunction) => {
   const userId = (req as any).user.id;
 
@@ -60,19 +61,37 @@ const logout = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const refresh = async (req: Request, res: Response, next: NextFunction) => {
+
+const refresh = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const refreshToken = req?.cookies?.refreshToken;
-console.log("Cookie header:", req?.headers.cookie);
-console.log("Parsed cookies:", req?.cookies);
+    const allowedOrigins = process.env.FRONTEND_URLS
+      ?.split(",")
+      .map(origin => origin.trim().replace(/\/$/, ""));
+
+    if (!allowedOrigins?.length) {
+      throw new AppError("FRONTEND_URL is not defined", 500);
+    }
+
+    const requestOrigin = req.headers.origin;
+
+    if (!requestOrigin || !allowedOrigins.includes(requestOrigin)) {
+      throw new AppError("Origin not allowed", 403);
+    }
+
+    const refreshToken = req.cookies?.refreshToken;
+
     if (!refreshToken) {
       throw new AppError("Refresh token is required", 401);
     }
 
     const accessToken = await refreshTokenService(refreshToken);
-    console.log("refreshed");
+
     return res.status(200).json({
-      message: "access token refreshed",
+      message: "Access token refreshed",
       token: accessToken
     });
   } catch (error) {

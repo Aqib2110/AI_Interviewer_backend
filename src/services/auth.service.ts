@@ -1,6 +1,6 @@
-import { db } from "../prisma/db";
-import { AppError } from "../Errors/App.error";
-import { generateAccessToken, generateRefreshToken } from "../lib/tokens";
+import { db } from "../prisma/db.js";
+import { AppError } from "../Errors/App.error.js";
+import { generateAccessToken, generateRefreshToken } from "../lib/tokens.js";
 import jwt from "jsonwebtoken";
 
 export const loginService = async (email: string, password: string) => {

@@ -12,8 +12,8 @@ import {
   getCandidateInfo as getCandidateInfoService,
   getOrgMembers as getOrgMembersService,
   getOrgInvitations as getOrgInvitationsService
-} from "../services/org.service";
-import { AppError } from "../Errors/App.error";
+} from "../services/org.service.js";
+import { AppError } from "../Errors/App.error.js";
 
 export const createOrganization = async (
   req: Request,
