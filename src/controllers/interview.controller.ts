@@ -98,13 +98,29 @@ export const createOrgInterview = async (
       compName,
       durationMinutes
     );
+    console.log("sending email to:", email);
 
-    await emailQueue.add("sendInterviewEmail", {
-      email: email,
-      link: `${process.env.FRONTEND_URL}/organization/interview/${slug}`,
-      companyName: compName,
-      role: role,
-    });
+const job = await emailQueue.add("sendInterviewEmail", {
+  email,
+  link: `${process.env.FRONTEND_URL}/interview/${slug}`,
+  companyName: compName,
+  role,
+});
+
+console.log("email job added:", job.id);
+console.log("email sent to:", email);
+
+const waiting = await emailQueue.getWaitingCount();
+const active = await emailQueue.getActiveCount();
+const completed = await emailQueue.getCompletedCount();
+const failed = await emailQueue.getFailedCount();
+
+console.log("EMAIL QUEUE STATUS:", {
+  waiting,
+  active,
+  completed,
+  failed,
+});
 
     return res.status(200).json({
       message: "Interview created successfully",

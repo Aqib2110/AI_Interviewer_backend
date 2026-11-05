@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq';
 import redis from './redis'
 
-
+console.log("redis",redis)
 export const ResumeQueue = new Queue('Resume', {
 connection: redis
 });
@@ -12,6 +12,13 @@ connection: redis,
 
 export const emailQueue = new Queue('Email', {
 connection: redis
+});
+
+console.log("PRODUCER:", {
+  host: redis.options.host,
+  port: redis.options.port,
+  db: redis.options.db,
+  queue: emailQueue.name,
 });
 
 export const AIAssessmentQueue = new Queue('AIAssessment', {
