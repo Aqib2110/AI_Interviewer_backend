@@ -8,7 +8,8 @@
     "dev": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "worker:all": "node dist/workers/email.worker.js & node dist/workers/assessment.worker.js & node dist/workers/interview.worker.js & node dist/workers/resume.worker.js"
   },
   "keywords": [],
   "author": "",
