@@ -1,5 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config();
 import redis from "../lib/redis.js";
 import { Worker } from "bullmq";
 import {
