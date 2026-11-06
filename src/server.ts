@@ -1,4 +1,5 @@
 import "./lib/temporal.js";
+import "dotenv/config";
 import { auth } from "./routes/auth.routes.js";
 import { globalErrorHandler } from "./middleware/error.middleware.js";
 import { orgRouter } from "./routes/org.routes.js";
