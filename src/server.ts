@@ -1,10 +1,11 @@
-import express from "express";
+import "./lib/temporal.js";
 import { auth } from "./routes/auth.routes.js";
 import { globalErrorHandler } from "./middleware/error.middleware.js";
 import { orgRouter } from "./routes/org.routes.js";
 import { userRouter } from "./routes/user.routes.js";
 import { interview } from "./routes/interview.routes.js";
 import cookieParser from "cookie-parser";
+import express from "express";
 
 import cors from "cors";
 
