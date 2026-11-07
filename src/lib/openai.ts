@@ -1,7 +1,10 @@
+import "dotenv/config";
 import OpenAI from "openai";
 import { OpenAIError } from "../Errors/openi.error.js";
 import { AppError } from "../Errors/App.error.js";
-
+if(!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY is not defined");
+}
 export const openai = new OpenAI({
   apiKey: process.env.GEMINI_API_KEY,
   baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",

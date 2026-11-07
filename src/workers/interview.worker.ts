@@ -6,6 +6,8 @@ import { AIAssessmentQueue } from "../lib/queue.js";
 const worker = new Worker(
   "Interview",
   async (job) => {
+
+    console.log("Interview worker received job:", job.name, job.data);
     if (job.name === "expire_interview") {
       try {
         const { interviewId } = job.data;
@@ -42,3 +44,23 @@ const worker = new Worker(
      concurrency: 3
    }
 );
+
+worker.on("ready", () => {
+  console.log("Interview worker is ready");
+});
+
+worker.on("active", (job) => {
+  console.log("Interview job started:", job.id, job.name);
+});
+
+worker.on("completed", (job) => {
+  console.log("Interview job completed:", job.id);
+});
+
+worker.on("failed", (job, error) => {
+  console.error("Interview job failed:", job?.id, error);
+});
+
+worker.on("error", (error) => {
+  console.error("Interview worker error:", error);
+});

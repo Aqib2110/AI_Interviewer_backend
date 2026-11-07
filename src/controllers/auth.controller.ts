@@ -15,13 +15,13 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 
     const { accessToken, refreshToken, user } = await loginService(email, password);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
-      maxAge: 60 * 60 * 1000,
-      path: "/"
-    });
+   res.cookie("refreshToken", refreshToken, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 60 * 60 * 1000,
+  path: "/",
+});
 
      const userInfo = {
         id:user.id,
@@ -50,7 +50,7 @@ const logout = async (req: Request, res: Response, next: NextFunction) => {
     res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "none",
     });
 
     return res.status(200).json({
