@@ -1,18 +1,144 @@
-
+import "dotenv/config";
 import "../lib/temporal.js";
 import { db } from "../prisma/db.js";
 import redis from "../lib/redis.js";
 import { Worker } from "bullmq";
-import { openai } from "../lib/openai.js";
+import { GoogleGenAI } from "@google/genai";
 
 interface InterviewMessage {
   userMsg: string;
   aiMsg: string;
 }
 
+const apiKey = process.env.GEMINI_API_KEY;
+const model = process.env.GEMINI_EVALUATION_MODEL;
+
+if (!apiKey) {
+  throw new Error("GEMINI_API_KEY is missing");
+}
+
+if (!model) {
+  throw new Error("GEMINI_EVALUATION_MODEL is missing");
+}
+
+const gemini = new GoogleGenAI({ apiKey });
+
+const assessmentSchema = {
+  type: "OBJECT",
+  properties: {
+    overallScore: {
+      type: "INTEGER",
+    },
+    overallLevel: {
+      type: "STRING",
+      enum: ["Excellent", "Strong", "Good", "Moderate", "Weak"],
+    },
+    transcript: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          question: {
+            type: "STRING",
+          },
+          answer: {
+            type: "STRING",
+          },
+        },
+        required: ["question", "answer"],
+      },
+    },
+    skills: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          skill: {
+            type: "STRING",
+          },
+          score: {
+            type: "INTEGER",
+          },
+          level: {
+            type: "STRING",
+            enum: [
+              "Excellent",
+              "Strong",
+              "Good",
+              "Moderate",
+              "Weak",
+              "Insufficient Evidence",
+            ],
+          },
+          evidence: {
+            type: "STRING",
+          },
+          strengths: {
+            type: "ARRAY",
+            items: {
+              type: "STRING",
+            },
+          },
+          weaknesses: {
+            type: "ARRAY",
+            items: {
+              type: "STRING",
+            },
+          },
+        },
+        required: [
+          "skill",
+          "score",
+          "level",
+          "evidence",
+          "strengths",
+          "weaknesses",
+        ],
+      },
+    },
+    strengths: {
+      type: "ARRAY",
+      items: {
+        type: "STRING",
+      },
+    },
+    areasToImprove: {
+      type: "ARRAY",
+      items: {
+        type: "STRING",
+      },
+    },
+    summary: {
+      type: "STRING",
+    },
+    recommendation: {
+      type: "STRING",
+      enum: [
+        "Strongly Recommend",
+        "Recommend",
+        "Consider",
+        "Do Not Recommend",
+        "Insufficient Evidence",
+      ],
+    },
+  },
+  required: [
+    "overallScore",
+    "overallLevel",
+    "transcript",
+    "skills",
+    "strengths",
+    "areasToImprove",
+    "summary",
+    "recommendation",
+  ],
+};
+
 const worker = new Worker(
   "AIAssessment",
   async (job) => {
+    console.log("AIAssessment worker received job:", job.name, job.data);
+
     if (job.name !== "skills_evaluation") return;
 
     try {
@@ -44,13 +170,14 @@ const worker = new Worker(
         throw new Error("No interview messages found");
       }
 
-      const response = await openai.responses.create({
-        model: process.env.OPENAI_EVALUATION_MODEL!,
-
-        input: [
-          {
-            role: "system",
-            content: `
+      const response = await gemini.models.generateContent({
+        model,
+        contents: JSON.stringify({
+          requiredSkills: skills,
+          interviewMessages,
+        }),
+        config: {
+          systemInstruction: `
 You are an expert technical interviewer and candidate-skill evaluator.
 
 Evaluate the candidate ONLY using evidence from the supplied interview conversation.
@@ -63,6 +190,9 @@ ASSESSMENT RULES:
 - Focus on technical knowledge and reasoning.
 - Do not evaluate English fluency, accent, grammar, personality, appearance, or other unrelated characteristics.
 - Provide concise evidence for every skill.
+- Score skills from 0 to 100.
+- Overall score must be an integer from 0 to 100.
+- Use "Insufficient Evidence" when a skill was not adequately evaluated.
 - Return only the structured assessment.
 
 TRANSCRIPT RULES:
@@ -79,164 +209,28 @@ TRANSCRIPT RULES:
 - If a question has no corresponding candidate answer, use an empty string for answer.
 - If a candidate response cannot be confidently matched to a question, do not invent a pairing.
 - Include all identifiable interview questions and answers, not just technical questions.
+
+OUTPUT RULES:
+- Return valid JSON matching the supplied response schema.
+- Do not include Markdown or code fences.
+- Every required field must be populated.
 `,
-          },
-          {
-            role: "user",
-            content: JSON.stringify({
-              requiredSkills: skills,
-              interviewMessages,
-            }),
-          },
-        ],
-
-        text: {
-          format: {
-            type: "json_schema",
-            name: "candidate_skill_assessment",
-            strict: true,
-            schema: {
-              type: "object",
-              properties: {
-                overallScore: {
-                  type: "integer",
-                },
-
-                overallLevel: {
-                  type: "string",
-                  enum: ["Excellent", "Strong", "Good", "Moderate", "Weak"],
-                },
-
-                transcript: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      question: {
-                        type: "string",
-                      },
-                      answer: {
-                        type: "string",
-                      },
-                    },
-                    required: ["question", "answer"],
-                    additionalProperties: false,
-                  },
-                },
-
-                skills: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      skill: {
-                        type: "string",
-                      },
-
-                      score: {
-                        type: "integer",
-                      },
-
-                      level: {
-                        type: "string",
-                        enum: [
-                          "Excellent",
-                          "Strong",
-                          "Good",
-                          "Moderate",
-                          "Weak",
-                          "Insufficient Evidence",
-                        ],
-                      },
-
-                      evidence: {
-                        type: "string",
-                      },
-
-                      strengths: {
-                        type: "array",
-                        items: {
-                          type: "string",
-                        },
-                      },
-
-                      weaknesses: {
-                        type: "array",
-                        items: {
-                          type: "string",
-                        },
-                      },
-                    },
-
-                    required: [
-                      "skill",
-                      "score",
-                      "level",
-                      "evidence",
-                      "strengths",
-                      "weaknesses",
-                    ],
-
-                    additionalProperties: false,
-                  },
-                },
-
-                strengths: {
-                  type: "array",
-                  items: {
-                    type: "string",
-                  },
-                },
-
-                areasToImprove: {
-                  type: "array",
-                  items: {
-                    type: "string",
-                  },
-                },
-
-                summary: {
-                  type: "string",
-                },
-
-                recommendation: {
-                  type: "string",
-                  enum: [
-                    "Strongly Recommend",
-                    "Recommend",
-                    "Consider",
-                    "Do Not Recommend",
-                    "Insufficient Evidence",
-                  ],
-                },
-              },
-
-              required: [
-                "overallScore",
-                "overallLevel",
-                "transcript",
-                "skills",
-                "strengths",
-                "areasToImprove",
-                "summary",
-                "recommendation",
-              ],
-
-              additionalProperties: false,
-            },
-          },
+          responseMimeType: "application/json",
+          responseJsonSchema: assessmentSchema,
         },
       });
 
-      if (!response.output_text) {
-        throw new Error("AI returned an empty assessment response");
+      const outputText = response.text;
+
+      if (!outputText) {
+        throw new Error("Gemini returned an empty assessment response");
       }
 
-      const assessmentReport = JSON.parse(response.output_text);
+      const assessmentReport = JSON.parse(outputText);
 
       await db.orm.public.Report.create({
         interviewId,
-        content: response.output_text,
+        content: JSON.stringify(assessmentReport),
       });
 
       await db.orm.public.Interview.where({
@@ -260,3 +254,23 @@ TRANSCRIPT RULES:
     concurrency: 3,
   },
 );
+
+worker.on("ready", () => {
+  console.log("Interview worker is ready");
+});
+
+worker.on("active", (job) => {
+  console.log("Interview job started:", job.id, job.name);
+});
+
+worker.on("completed", (job) => {
+  console.log("Interview job completed:", job.id);
+});
+
+worker.on("failed", (job, error) => {
+  console.error("Interview job failed:", job?.id, error);
+});
+
+worker.on("error", (error) => {
+  console.error("Interview worker error:", error);
+});

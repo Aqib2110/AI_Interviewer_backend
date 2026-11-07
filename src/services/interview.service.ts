@@ -50,7 +50,7 @@ export const createOrgInterviewSession = async (
     interviewId: candidateInterview.id,
   },
   {
-    delay: (candidateInterview.durationMinutes + 2) * 60 * 1000,
+    delay: 3 * 60 * 1000,
     attempts: 3,
     backoff: {
       type: "exponential",
