@@ -134,6 +134,8 @@ const assessmentSchema = {
   ],
 };
 
+
+
 const worker = new Worker(
   "AIAssessment",
   async (job) => {
