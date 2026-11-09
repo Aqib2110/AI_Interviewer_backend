@@ -9,7 +9,9 @@ import {
   switchContext as switchContextService,
   getUserOrganizations as getUserOrganizationsService,
   getUserDashOverview as getUserDashOverviewService,
-  getPublicReport as getPublicReportService
+  getPublicReport as getPublicReportService,
+  getUserInvitations as getUserInvitationsService,
+  getUserInvitation as getUserInvitationService
 } from "../services/user.service.js";
 import { AppError } from "../Errors/App.error.js";
 
@@ -236,5 +238,48 @@ export const getPublicReport = async(
   } catch (error) {
     next(error)
   }
+}
+
+
+export const getUserInvitations = async(
+  req:Request,
+  res:Response,
+  next:NextFunction
+)=>{
+try {
+  const email = (req as any).user.email;
+
+
+const invitations = await getUserInvitationsService(email);
+
+res.status(200).json({
+  invitations
+})
+} catch (error) {
+  next(error)
+}
+}
+
+
+export const getUserInvitation = async(
+  req:Request,
+  res:Response,
+  next:NextFunction
+)=>{
+try {
+  const token = req?.params?.token?.toString();
+   if(!token)
+   {
+    throw new AppError("token is required",401);
+   }
+
+const invitation = await getUserInvitationService(token);
+
+res.status(200).json({
+  invitation
+})
+} catch (error) {
+  next(error)
+}
 }
 

@@ -162,11 +162,14 @@ export const getCandidateInfo = async (id: string) => {
 
 
 export const getOrgInvitations = async(tenantId:string,userId:number)=>{
-  return db.orm.public.Organization.where({
+  const invitations = await db.orm.public.Organization.where({
     id:tenantId,
     adminId: userId
-  }).include("invitations").all();
+  }).include("invitations").first();
+
+  return invitations?.invitations;
 }
+
 
 
 

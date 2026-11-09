@@ -7,6 +7,8 @@ import { createUser, createUserWorkspace, getUserWorkspaces, uploadUserResume,ge
    getUserOrganizations,
    getUserDashOverview,
    switchContext,
+    getUserInvitations,
+    getUserInvitation,
   getPublicReport} from '../controllers/user.controller.js';
 
 const upload = multer({
@@ -53,6 +55,17 @@ userRouter.get(
   getUserDashOverview,
 );
 
+userRouter.get(
+  "/user/invitations",
+  authMiddlware,
+  getUserInvitations,
+);
+
+userRouter.get(
+  "/user/invitation/:token",
+  authMiddlware,
+  getUserInvitation,
+);
 
 
 userRouter.get(
