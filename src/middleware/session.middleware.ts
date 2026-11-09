@@ -10,7 +10,7 @@ export const sessionContext = async (
   try {
         let session;
     const sessionId = (req as any).user.sessionId;
-    console.log("user:", (req as any).user);
+    console.log("usersss:", (req as any).user);
 console.log("sessionId:", (req as any).user?.sessionId);
     const sessionFound = await redis.get(`session:${sessionId}`);
 

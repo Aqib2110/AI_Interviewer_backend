@@ -1,6 +1,6 @@
 import { db } from "../prisma/db.js";
 import { ResumeQueue } from "../lib/queue.js";
-import { uploadFileToS3 } from "../lib/s3.js";
+import { getSignedUrlFromS3, uploadFileToS3 } from "../lib/s3.js";
 import { AppError } from "../Errors/App.error.js";
 import redis from "../lib/redis.js";
 
@@ -146,7 +146,7 @@ export const getUserDashOverview = async(userId:number): Promise<UserDashOvervie
 
 
 export const getPublicReport = async (token: string) => {
-  return await db.orm.public.Interview
+ const interview =  await db.orm.public.Interview
     .where({ slug: token })
     .select(
       "id",
@@ -157,6 +157,7 @@ export const getPublicReport = async (token: string) => {
       "score",
       "status",
       "skills",
+      "videoKey",
       "createdAt",
       "tenantId",
       "endedAt")
@@ -164,4 +165,18 @@ export const getPublicReport = async (token: string) => {
     .include("Message")
     .include("Report")
     .first();
+
+    if(!interview)
+    {
+      throw new AppError("Interview not found",404);
+    }
+
+    const videoUrl = interview.videoKey
+       ? await getSignedUrlFromS3(interview.videoKey)
+       : null;
+   
+     return {
+       ...interview,
+       videoUrl,
+     };
 };

@@ -50,6 +50,8 @@ export const authMiddlware = (
     };
 
     (req as any).user = authUser;
+    //@ts-ignore
+    console.log(authUser,"authUsers")
     next();
   } catch (error) {
     next(error);

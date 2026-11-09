@@ -169,7 +169,19 @@ export const getOrgInterviewDetails = async (
   const interview = await db.orm.public.Interview.where({
     tenantId,
     slug,
-  })
+  }).select(
+      "id",
+      "title",
+      "description",
+      "role",
+      "compName",
+      "score",
+      "status",
+      "skills",
+      "createdAt",
+      "videoKey",
+      "tenantId",
+      "endedAt")
     .include("interviewcandidate")
     .include("Message")
     .include("Report")
