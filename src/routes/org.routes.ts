@@ -46,7 +46,7 @@ orgRouter.post(
   authMiddlware,
   isolateTenant,
   sessionContext,
-  authorize("ADMIN"),
+  authorize("HR","ADMIN"),
   createOrgInvitation,
 );
 

@@ -34,7 +34,7 @@ export const createOrganization = async (
     const membership = await tx.orm.public.Membership.create({
       userId: user.id,
       organizationId: org.id,
-      role: "HR",
+      role: "ADMIN"
     });
 
     return { org, membership };
