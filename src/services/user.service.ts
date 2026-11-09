@@ -180,3 +180,15 @@ export const getPublicReport = async (token: string) => {
        videoUrl,
      };
 };
+
+export const getUserInvitations = async(email: string)=>{
+  return await db.orm.public.OrgInvitation.where({
+   email
+  }).include("organization").all();
+}
+
+export const getUserInvitation = async(token: string)=>{
+  return await db.orm.public.OrgInvitation.where({
+    tokenHash: token
+  }).include("organization").first();
+}

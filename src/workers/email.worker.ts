@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import redis from "../lib/redis.js";
 import { Worker } from "bullmq";
 import {
@@ -14,7 +15,9 @@ const worker = new Worker(
     console.log("Email worker received job:", job.name, job.data);
 
     if (job.name === "sendInvitationEmail") {
-      const { email, link } = job.data;
+      const { email, tokenHash } = job.data;
+      const link = `${process.env.FRONTEND_URL}/invitation/${tokenHash}`;
+
 
       const html = invitationEmailTemplate(link);
 
