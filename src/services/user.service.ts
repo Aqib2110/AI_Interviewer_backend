@@ -181,11 +181,24 @@ export const getPublicReport = async (token: string) => {
      };
 };
 
-export const getUserInvitations = async(email: string)=>{
-  return await db.orm.public.OrgInvitation.where({
-   email
-  }).include("organization").all();
-}
+export const getUserInvitations = async (email: string) => {
+  const currentTime = Temporal.Now.instant();
+
+  const invitations = await db.orm.public.OrgInvitation.where({
+    email,
+    status: "PENDING",
+  })
+    .include("organization")
+    .all();
+
+  return invitations.filter(
+    (invitation) =>
+      Temporal.Instant.compare(
+        invitation.expiresAt,
+        currentTime
+      ) > 0
+  );
+};
 
 export const getUserInvitation = async(token: string)=>{
   return await db.orm.public.OrgInvitation.where({

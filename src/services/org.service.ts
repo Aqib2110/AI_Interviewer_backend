@@ -88,6 +88,47 @@ export const createOrgInvitation = async (
   });
 };
 
+
+export const resendOrgInvitation = async (
+  invitationId: string,
+  orgId: string,
+  userId: number,
+) => {
+  const invitation = await db.orm.public.OrgInvitation.where({
+    id: invitationId,
+    organizationId: orgId,
+    createdBy: userId,
+  }).first();
+
+  if (!invitation) {
+    throw new AppError("invitation not found", 404);
+  }
+
+  if(invitation.status === "ACCEPTED"){
+    throw new AppError("invitation already accepted", 409);
+  }
+
+  const tokenHash = randomBytes(16).toString("hex");
+
+  const expiresAt = Temporal.Now.instant().add({
+    hours: 24,
+  });
+
+const updatedInvitation = await db.orm.public.OrgInvitation.where({
+    id: invitationId,
+  }).update({
+    tokenHash,
+    expiresAt,
+  });
+ 
+  await emailQueue.add("sendInvitationEmail", {
+    email: invitation.email,
+    tokenHash,
+  });
+
+  return { ...updatedInvitation };
+};
+
 export const orgInvitationAccept = async (
   userId: number,
   email: string,
@@ -161,16 +202,14 @@ export const getCandidateInfo = async (id: string) => {
 
 
 
-export const getOrgInvitations = async(tenantId:string,userId:number)=>{
-  const invitations = await db.orm.public.Organization.where({
-    id:tenantId,
-    adminId: userId
-  }).include("invitations").first();
+export const getOrgInvitations = async (userId: number, tenantId: string) => {
+const invitations = await db.orm.public.Organization.where({
+  id: tenantId,
+  adminId: userId,
+}).include("invitations").first();
 
   return invitations?.invitations;
-}
-
-
+};
 
 
 export const getOrgMembers = async (
@@ -181,9 +220,10 @@ export const getOrgMembers = async (
     .where((m) => and(
       m.organizationId.eq(tenantId),
       m.userId.neq(userId),
-    ))
+    )).include("user")
     .all();
 };
+
 
 
 

@@ -11,7 +11,8 @@ import {
   getOrgCandidates as getOrgCandidatesService,
   getCandidateInfo as getCandidateInfoService,
   getOrgMembers as getOrgMembersService,
-  getOrgInvitations as getOrgInvitationsService
+  getOrgInvitations as getOrgInvitationsService,
+  resendOrgInvitation as resendOrgInvitationService
 } from "../services/org.service.js";
 import { AppError } from "../Errors/App.error.js";
 
@@ -99,6 +100,8 @@ export const createOrgInvitation = async (
   }
 };
 
+
+
 export const orgInvitationAccept = async (
   req: Request,
   res: Response,
@@ -116,6 +119,28 @@ export const orgInvitationAccept = async (
 
     return res.status(201).json({
       message: "invitation accepted",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resendOrgInvitation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { invitationId } = req.body;
+  try {
+  const invitation = await resendOrgInvitationService(
+      invitationId,
+      (req as any).user.tenantId,
+      (req as any).user.id
+    );
+
+    return res.status(200).json({
+      message: "Invitation resent successfully",
+      invitation
     });
   } catch (error) {
     next(error);
@@ -235,9 +260,10 @@ export const getOrgInvitations = async(
   next: NextFunction,
 )=>{
  try {
-    const tenantId = (req as any).user.tenantId;
 
- const invitations = await getOrgInvitationsService(tenantId,(req as any).user.id);
+const userId = (req as any).user.id;
+const tenantId = (req as any).user.tenantId;
+ const invitations = await getOrgInvitationsService(userId,tenantId);
 
     return res.status(200).json({
      invitations
