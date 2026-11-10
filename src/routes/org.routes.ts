@@ -17,6 +17,7 @@ import {
   getOrgDashOverview,
   getOrgCandidates,
   getCandidateInfo,
+  resendOrgInvitation,
   getOrgMembers
 } from "../controllers/org.controller.js";
 
@@ -48,6 +49,15 @@ orgRouter.post(
   sessionContext,
   authorize("HR","ADMIN"),
   createOrgInvitation,
+);
+
+orgRouter.post(
+  "/organization/invitation/resend",
+  authMiddlware,
+  isolateTenant,
+  sessionContext,
+  authorize("HR","ADMIN"),
+  resendOrgInvitation,
 );
 
 orgRouter.post(
