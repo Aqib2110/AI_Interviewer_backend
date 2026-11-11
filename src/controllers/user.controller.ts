@@ -11,7 +11,9 @@ import {
   getUserDashOverview as getUserDashOverviewService,
   getPublicReport as getPublicReportService,
   getUserInvitations as getUserInvitationsService,
-  getUserInvitation as getUserInvitationService
+  getUserInvitation as getUserInvitationService,
+  getUserNotifications as getUserNotificationsService,
+  readUserNotification as readUserNotificationService,
 } from "../services/user.service.js";
 import { AppError } from "../Errors/App.error.js";
 
@@ -282,4 +284,48 @@ res.status(200).json({
   next(error)
 }
 }
+
+export const readUserNotification = async(
+  req:Request,
+  res:Response,
+  next:NextFunction
+)=>{
+try {
+  const {notificationIds} = req.body;
+  console.log(notificationIds,"ids")
+if (!notificationIds?.length) {
+  throw new AppError("Notification IDs are required", 400);
+}
+  const userId = (req as any).user.id;
+
+
+  await readUserNotificationService(userId,notificationIds);
+
+res.status(200).json({
+  message:"success"
+})
+} catch (error) {
+  next(error)
+}
+}
+
+export const getUserNotifications = async(
+  req:Request,
+  res:Response,
+  next:NextFunction
+)=>{
+try {
+  const tenantId = (req as any).user.tenantId;
+  const userId = (req as any).user.id;
+
+const notifications = await getUserNotificationsService(tenantId,userId);
+
+res.status(200).json({
+  notifications
+})
+} catch (error) {
+  next(error)
+}
+}
+
 

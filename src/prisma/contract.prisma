@@ -91,6 +91,60 @@ model Membership {
   @@unique([userId, organizationId])
 }
 
+
+model Notification {
+  id           String   @id @default(uuid())
+  tenantId     String
+  actorId      Int?
+  targetUserId Int?
+  type         String
+  message      String
+  entityId     String?
+  createdAt    DateTime @default(now())
+
+  tenant Organization @relation(fields: [tenantId], references: [id])
+
+  actor User? @relation(
+    "NotificationActor",
+    fields: [actorId],
+    references: [id],
+    onDelete: SetNull
+  )
+
+  targetUser User? @relation(
+    "NotificationTarget",
+    fields: [targetUserId],
+    references: [id],
+    onDelete: SetNull
+  )
+
+  reads NotificationRead[]
+
+  @@index([tenantId, createdAt])
+  @@index([actorId])
+  @@index([targetUserId])
+}
+
+model NotificationRead {
+  id             String   @id @default(uuid())
+  notificationId String
+  userId         Int
+  readAt         DateTime @default(now())
+
+  notification Notification @relation(
+    fields: [notificationId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([notificationId, userId])
+  @@index([userId])
+}
+
+
+
 model Session {
   id              Int           @id @default(autoincrement())
   refreshToken    String

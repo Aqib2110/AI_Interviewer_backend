@@ -9,7 +9,10 @@ import { createUser, createUserWorkspace, getUserWorkspaces, uploadUserResume,ge
    switchContext,
     getUserInvitations,
     getUserInvitation,
+    getUserNotifications,
+    readUserNotification,
   getPublicReport} from '../controllers/user.controller.js';
+import { isolateTenant } from '../middleware/tenant.middleware.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -60,6 +63,26 @@ userRouter.get(
   authMiddlware,
   getUserInvitations,
 );
+
+
+userRouter.get(
+  "/user/notifications",
+  authMiddlware,
+  isolateTenant,
+  sessionContext,
+  getUserNotifications,
+);
+
+userRouter.post(
+  "/user/notification",
+  authMiddlware,
+  isolateTenant,
+  sessionContext,
+  readUserNotification,
+);
+
+
+
 
 userRouter.get(
   "/user/invitation/:token",

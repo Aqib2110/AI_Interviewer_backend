@@ -32,8 +32,8 @@ const worker = new Worker(
     }
 
     if (job.name === "sendInterviewEmail") {
-      const { link, companyName, role, email } = job.data;
-
+      const { slug, companyName, role, email } = job.data;
+        const link = `${process.env.FRONTEND_URL}/interview/${slug}`;
       const html = interviewEmailTemplate({
         interviewLink: link,
         companyName,

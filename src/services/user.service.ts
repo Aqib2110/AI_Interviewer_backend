@@ -3,7 +3,7 @@ import { ResumeQueue } from "../lib/queue.js";
 import { getSignedUrlFromS3, uploadFileToS3 } from "../lib/s3.js";
 import { AppError } from "../Errors/App.error.js";
 import redis from "../lib/redis.js";
-
+import { or } from "@prisma/orm-postgres/orm-client";
 
 type UserDashOverview = {
   stats: {
@@ -42,7 +42,7 @@ export const uploadUserResume = async (
   }
 
   const key = `user/documents/${crypto.randomUUID()}-${fileName}`;
-  console.log(key,"key");
+  console.log(key, "key");
 
   await uploadFileToS3(key, buffer, mimetype);
 
@@ -52,7 +52,7 @@ export const uploadUserResume = async (
     fileKey: key,
     status: "PENDING",
   });
-  console.log(resume.fileUrl,"fileUrl");
+  console.log(resume.fileUrl, "fileUrl");
 
   await ResumeQueue.add("process_Resume", {
     resumeId: resume.id,
@@ -77,77 +77,71 @@ export const getUserWorkspaces = async (userId: number) => {
   });
 };
 
-export const switchContext = async(userId:number,newOrgId?:string)=>{
+export const switchContext = async (userId: number, newOrgId?: string) => {
+  if (newOrgId) {
+    const membership = await db.orm.public.Membership.where({
+      userId: userId,
+      organizationId: newOrgId,
+    }).first();
 
-  if(newOrgId)
-  {
-     const membership = await db.orm.public.Membership.where({
-    userId: userId,
-    organizationId: newOrgId
-   }).first();
-
-   if(!membership)
-   {
-    throw new AppError("membership not found",404);
-   }
+    if (!membership) {
+      throw new AppError("membership not found", 404);
+    }
   }
- const session = await db.orm.public.Session.where({
-    userId: userId
+  const session = await db.orm.public.Session.where({
+    userId: userId,
   }).update({
-     currentTenantId: newOrgId ? newOrgId : null
+    currentTenantId: newOrgId ? newOrgId : null,
   });
   await redis.del(`session:${session?.id}`);
-}
+};
 
+export const getDashboardData = async (userId: number) => {
+  return await db.orm.public.User.where({
+    id: userId,
+  })
+    .include("interviews")
+    .include("createdInterviews")
+    .first();
+};
 
-export const getDashboardData = async(userId:number)=>{
-return await db.orm.public.User.where({
-  id:userId
-}).include("interviews").include("createdInterviews").first();
-}
-
-
-
-export const getUserResume = async(id:number)=>{
+export const getUserResume = async (id: number) => {
   return await db.orm.public.Resume.where({
-    userId: id
+    userId: id,
   }).all();
-}
+};
 
+export const getUserOrganizations = async (userId: number) => {
+  return await db.orm.public.Membership.where({
+    userId,
+  })
+    .include("organization")
+    .all();
+};
 
-export const getUserOrganizations = async(userId:number)=>{
-return await db.orm.public.Membership.where({
-  userId
-}).include("organization").all();
-}
-
-
-export const getUserDashOverview = async(userId:number): Promise<UserDashOverview>=>{
-
+export const getUserDashOverview = async (
+  userId: number,
+): Promise<UserDashOverview> => {
   const stats = await db.orm.public.Interview.where({
-    createdBy: userId
-  }).aggregate((agg)=>({
-  total: agg.count(),
-  avgScore: agg.avg("score")
-}));
+    createdBy: userId,
+  }).aggregate((agg) => ({
+    total: agg.count(),
+    avgScore: agg.avg("score"),
+  }));
 
   const interviews = await db.orm.public.Interview.where({
-    createdBy: userId
+    createdBy: userId,
   }).all();
 
   const resume = await db.orm.public.Resume.where({
     userId,
   }).first();
 
-  return {stats,interviews,resume};
-
-}
-
-
+  return { stats, interviews, resume };
+};
 
 export const getPublicReport = async (token: string) => {
- const interview =  await db.orm.public.Interview
-    .where({ slug: token })
+  const interview = await db.orm.public.Interview.where({ slug: token })
     .select(
       "id",
       "title",
@@ -160,25 +154,25 @@ export const getPublicReport = async (token: string) => {
       "videoKey",
       "createdAt",
       "tenantId",
-      "endedAt")
-      .include("interviewcandidate")
+      "endedAt",
+    )
+    .include("interviewcandidate")
     .include("Message")
     .include("Report")
     .first();
 
-    if(!interview)
-    {
-      throw new AppError("Interview not found",404);
-    }
+  if (!interview) {
+    throw new AppError("Interview not found", 404);
+  }
 
-    const videoUrl = interview.videoKey
-       ? await getSignedUrlFromS3(interview.videoKey)
-       : null;
-   
-     return {
-       ...interview,
-       videoUrl,
-     };
+  const videoUrl = interview.videoKey
+    ? await getSignedUrlFromS3(interview.videoKey)
+    : null;
+
+  return {
+    ...interview,
+    videoUrl,
+  };
 };
 
 export const getUserInvitations = async (email: string) => {
@@ -193,15 +187,56 @@ export const getUserInvitations = async (email: string) => {
 
   return invitations.filter(
     (invitation) =>
-      Temporal.Instant.compare(
-        invitation.expiresAt,
-        currentTime
-      ) > 0
+      Temporal.Instant.compare(invitation.expiresAt, currentTime) > 0,
   );
 };
 
-export const getUserInvitation = async(token: string)=>{
+export const getUserNotifications = async (
+  tenantId: string,
+  userId: number
+) => {
+  return db.orm.public.Notification
+    .where((n) => n.tenantId.eq(tenantId))
+    .where((n) =>
+      n.reads.none((r) => r.userId.eq(userId))
+    )
+    .where((n) =>
+      or(
+        n.actorId.isNull(),
+        n.actorId.neq(userId)
+      )
+    )
+    .where((n) =>
+      or(
+        n.targetUserId.isNull(),
+        n.targetUserId.neq(userId)
+      )
+    )
+    .orderBy((n) => n.createdAt.desc())
+    .all();
+};
+
+
+
+export const readUserNotification = async (
+  userId: number,
+  notificationIds: string[]
+) => {
+  const rows = notificationIds.map((notificationId) => ({
+    notificationId,
+    userId
+  }));
+
+  return db.orm.public.NotificationRead.createAll(rows, {
+    onConflict: "skip",
+    conflictOn: ["notificationId", "userId"],
+  });
+};
+
+export const getUserInvitation = async (token: string) => {
   return await db.orm.public.OrgInvitation.where({
-    tokenHash: token
-  }).include("organization").first();
-}
+    tokenHash: token,
+  })
+    .include("organization")
+    .first();
+};

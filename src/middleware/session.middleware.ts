@@ -65,7 +65,7 @@ console.log("sessionId:", (req as any).user?.sessionId);
     ) {
       return res.status(401).json({
         message:
-          "wrong organization, please switch to the correct organization",
+          "wrong context, please switch to the correct organization",
       });
     }
 
