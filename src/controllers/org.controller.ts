@@ -115,10 +115,12 @@ export const orgInvitationAccept = async (
   const userId = (req as any).user.id;
   const email = (req as any).user.email;
   try {
-    await orgInvitationAcceptService(userId, email, tokenHash);
+  const membership = await orgInvitationAcceptService(userId, email, tokenHash);
 
     return res.status(201).json({
       message: "invitation accepted",
+      membership
+
     });
   } catch (error) {
     next(error);
@@ -179,6 +181,7 @@ export const deleteOrgMemberRole = async (
   next: NextFunction,
 ) => {
   const { memberId } = req.body;
+  const userId  = (req as any).user.id;
 
   if (!memberId ) {
     throw new AppError("memberId is required", 401);
@@ -188,6 +191,7 @@ export const deleteOrgMemberRole = async (
     await deleteOrgMemberRoleService(
       memberId,
       (req as any).user.tenantId,
+      userId
     );
 
     return res.status(200).json({

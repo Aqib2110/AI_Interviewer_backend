@@ -9,80 +9,18 @@ import { geminiLiveSession } from "../lib/gemini.js";
 import { getSignedUrlFromS3 } from "../lib/s3.js";
 import { interview } from "../routes/interview.routes.js";
 
-export const createOrgInterviewSession = async (
-  slug: string,
-) => {
+export const createOrgInterviewSession = async (slug: string) => {
   const candidateInterview = await db.orm.public.Interview.where({
     slug: slug,
-  }).first();
+  })
+    .include("user")
+    .first();
 
   if (!candidateInterview) {
     throw new AppError("no interview found", 404);
   }
 
-  if(!candidateInterview.skills?.length)
-  {
-     throw new AppError("skills are required", 401);
-  }
-
-  if (candidateInterview.status === "COMPELETED") {
-    throw new AppError("interview is already done", 403);
-  }
-
-  const token = await geminiLiveSession(candidateInterview?.description,candidateInterview?.skills);
-
-  const now = Temporal.Now.instant(); 
-
- const videoKey = `interviews/${candidateInterview?.id}/recording.webm`;
-
-  await db.orm.public.Interview.where({
-    id: candidateInterview.id,
-  }).update({
-    aiSessionId: JSON.stringify(token),
-    status: "IN_PROGRESS",
-    startedAt: now,
-    videoKey: videoKey
-  });
-
-  await InterviewQueue.add(
-  "expire_interview",
-  {
-    interviewId: candidateInterview.id,
-  },
-  {
-    delay: 3 * 60 * 1000,
-    attempts: 3,
-    backoff: {
-      type: "exponential",
-      delay: 2000,
-    },
-    removeOnComplete: {
-      age: 60 * 60 * 24,
-      count: 1000,
-    },
-    removeOnFail: {
-      age: 60 * 60 * 24 * 7,
-    },
-  }
-);
-
-  return token;
-};
-
-export const createUserInterviewSession = async (
-  slug: string,
-  userId:number
-) => {
-  const candidateInterview = await db.orm.public.Interview.where({
-    slug:slug,
-    createdBy: userId
-  }).first();
-
-  if (!candidateInterview) {
-    throw new AppError("no interview found", 404);
-  }
-
-  if(!candidateInterview?.skills?.length){
+  if (!candidateInterview.skills?.length) {
     throw new AppError("skills are required", 401);
   }
 
@@ -90,8 +28,84 @@ export const createUserInterviewSession = async (
     throw new AppError("interview is already done", 403);
   }
 
-  const token = await geminiLiveSession(candidateInterview?.description,candidateInterview?.skills);
- const videoKey = `interviews/${candidateInterview?.id}/recording.webm`;
+  const token = await geminiLiveSession(
+    candidateInterview?.description,
+    candidateInterview?.skills,
+  );
+
+  const now = Temporal.Now.instant();
+
+  const videoKey = `interviews/${candidateInterview?.id}/recording.webm`;
+
+  const transaction = await db.transaction(async (tx: any) => {
+  const interview = await db.orm.public.Interview.where({
+      id: candidateInterview.id,
+    }).update({
+      aiSessionId: JSON.stringify(token),
+      status: "IN_PROGRESS",
+      startedAt: now,
+      videoKey: videoKey,
+    });
+    await tx.orm.public.Notification.create({
+      tenantId: candidateInterview.tenantId,
+      actorId: candidateInterview.user.id,
+      targetUserId:interview?.candidateId,
+      type: "INTERVIEW_STARTED",
+      message: `${candidateInterview.candidateEmail} has started the interview.`,
+    });
+  });
+
+  await InterviewQueue.add(
+    "expire_interview",
+    {
+      interviewId: candidateInterview.id,
+    },
+    {
+      delay: 3 * 60 * 1000,
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
+      },
+      removeOnComplete: {
+        age: 60 * 60 * 24,
+        count: 1000,
+      },
+      removeOnFail: {
+        age: 60 * 60 * 24 * 7,
+      },
+    },
+  );
+
+  return token;
+};
+
+export const createUserInterviewSession = async (
+  slug: string,
+  userId: number,
+) => {
+  const candidateInterview = await db.orm.public.Interview.where({
+    slug: slug,
+    createdBy: userId,
+  }).first();
+
+  if (!candidateInterview) {
+    throw new AppError("no interview found", 404);
+  }
+
+  if (!candidateInterview?.skills?.length) {
+    throw new AppError("skills are required", 401);
+  }
+
+  if (candidateInterview.status === "COMPELETED") {
+    throw new AppError("interview is already done", 403);
+  }
+
+  const token = await geminiLiveSession(
+    candidateInterview?.description,
+    candidateInterview?.skills,
+  );
+  const videoKey = `interviews/${candidateInterview?.id}/recording.webm`;
 
   await db.orm.public.Interview.where({
     id: candidateInterview.id,
@@ -99,30 +113,30 @@ export const createUserInterviewSession = async (
     aiSessionId: JSON.stringify(token),
     status: "IN_PROGRESS",
     startedAt: Temporal.Now.instant(),
-    videoKey
+    videoKey,
   });
 
- await InterviewQueue.add(
-  "expire_interview",
-  {
-    interviewId: candidateInterview.id,
-  },
-  {
-    delay: (candidateInterview.durationMinutes + 2) * 60 * 1000,
-    attempts: 3,
-    backoff: {
-      type: "exponential",
-      delay: 2000,
+  await InterviewQueue.add(
+    "expire_interview",
+    {
+      interviewId: candidateInterview.id,
     },
-    removeOnComplete: {
-      age: 60 * 60 * 24,
-      count: 1000,
+    {
+      delay: (candidateInterview.durationMinutes + 2) * 60 * 1000,
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
+      },
+      removeOnComplete: {
+        age: 60 * 60 * 24,
+        count: 1000,
+      },
+      removeOnFail: {
+        age: 60 * 60 * 24 * 7,
+      },
     },
-    removeOnFail: {
-      age: 60 * 60 * 24 * 7,
-    },
-  }
-);
+  );
 
   return token;
 };
@@ -136,21 +150,32 @@ export const createOrgInterview = async (
   orgId: string,
   slug: string,
   role: string,
-  compName:string,
-  durationMinutes:number
+  compName: string,
+  durationMinutes: number,
 ) => {
-  return await db.orm.public.Interview.create({
-    title,
-    description,
-    skills,
-    createdBy: userId,
-    candidateEmail: email,
-    tenantId: orgId,
-    status: "PENDING",
-    role,
-    compName,
-    slug,
-    durationMinutes
+  return db.transaction(async (tx: any) => {
+    const interview = await tx.orm.public.Interview.create({
+      title,
+      description,
+      skills,
+      createdBy: userId,
+      candidateEmail: email,
+      tenantId: orgId,
+      status: "PENDING",
+      role,
+      compName,
+      slug,
+      durationMinutes,
+    });
+
+    await tx.orm.public.Notification.create({
+      actorId:userId,
+      tenantId: orgId,
+      type: "INTERVIEW",
+      message: `Interview created for ${email} by ${userId}`,
+    });
+
+    return interview;
   });
 };
 
@@ -169,7 +194,8 @@ export const getOrgInterviewDetails = async (
   const interview = await db.orm.public.Interview.where({
     tenantId,
     slug,
-  }).select(
+  })
+    .select(
       "id",
       "title",
       "description",
@@ -181,7 +207,8 @@ export const getOrgInterviewDetails = async (
       "createdAt",
       "videoKey",
       "tenantId",
-      "endedAt")
+      "endedAt",
+    )
     .include("interviewcandidate")
     .include("Message")
     .include("Report")
@@ -201,7 +228,6 @@ export const getOrgInterviewDetails = async (
   };
 };
 
-
 export const createUserInterview = async (
   title: string,
   description: string,
@@ -209,10 +235,9 @@ export const createUserInterview = async (
   email: string,
   tenantId: string,
   skills: [],
-  role:string,
-  compName:string,
-  durationMinutes:number
-
+  role: string,
+  compName: string,
+  durationMinutes: number,
 ) => {
   const slug = randomBytes(16).toString("hex");
 
@@ -228,7 +253,7 @@ export const createUserInterview = async (
     role,
     compName,
     slug,
-    durationMinutes
+    durationMinutes,
   });
 };
 
@@ -241,7 +266,7 @@ export const getUserInterviews = async (userId: number) => {
 };
 
 export const getUserInterviewDetails = async (userId: number, slug: string) => {
-  console.log(userId,slug,"info")
+  console.log(userId, slug, "info");
   const interview = await db.orm.public.Interview.where({
     candidateId: userId,
     slug,
@@ -250,7 +275,7 @@ export const getUserInterviewDetails = async (userId: number, slug: string) => {
     .include("Report")
     .first();
 
-    const videoUrl = interview?.videoKey
+  const videoUrl = interview?.videoKey
     ? await getSignedUrlFromS3(interview?.videoKey)
     : null;
 
@@ -258,42 +283,45 @@ export const getUserInterviewDetails = async (userId: number, slug: string) => {
     ...interview,
     videoUrl,
   };
-
 };
 
-export const createOrgCandidate = async(name:string,location:string,experience:string,phone:string,currRole:string,slug:string,tenantId:string)=>{
-const interview = await db.orm.public.Interview.where({
-  slug,
-  tenantId
-}).include("interviewcandidate").first();
-if(!interview)
-{
-  throw new AppError("interview not found",403)
-}
-if(!interview.tenantId)
-{
-  throw new AppError("interview doesn't belong to any organization",403)
-}
+export const createOrgCandidate = async (
+  name: string,
+  location: string,
+  experience: string,
+  phone: string,
+  currRole: string,
+  slug: string,
+  tenantId: string,
+) => {
+  const interview = await db.orm.public.Interview.where({
+    slug,
+    tenantId,
+  })
+    .include("interviewcandidate")
+    .first();
+  if (!interview) {
+    throw new AppError("interview not found", 403);
+  }
+  if (!interview.tenantId) {
+    throw new AppError("interview doesn't belong to any organization", 403);
+  }
 
+  if (interview?.interviewcandidate) {
+    throw new AppError("candidate already exists", 403);
+  }
 
-if(interview?.interviewcandidate)
-{
-    throw new AppError("candidate already exists",403)
-
-}
-
-await db.orm.public.Candidate.create({
-  name,
-  location,
-  experience,
-  phone,
-  currRole,
-  email:interview.candidateEmail,
-  organizationId:interview.tenantId,
-  interviewId:interview.id
-})
-
-}
+  await db.orm.public.Candidate.create({
+    name,
+    location,
+    experience,
+    phone,
+    currRole,
+    email: interview.candidateEmail,
+    organizationId: interview.tenantId,
+    interviewId: interview.id,
+  });
+};
 
 export const createUserInterviewMsg = async (
   senderId: number,
@@ -301,13 +329,12 @@ export const createUserInterviewMsg = async (
   userMsg: string,
   aiMsg: string,
 ) => {
-
-   const interviewFound = await redis.get(`interview:${interviewId}`);
+  const interviewFound = await redis.get(`interview:${interviewId}`);
 
   if (!interviewFound) {
     const interview = await db.orm.public.Interview.where({
       id: interviewId,
-      createdBy: senderId
+      createdBy: senderId,
     }).first();
 
     if (!interview) {
@@ -332,9 +359,8 @@ export const createUserInterviewMsg = async (
     senderId: senderId,
     interviewId,
     userMsg,
-    aiMsg:aiMsg,
+    aiMsg: aiMsg,
   });
-
 };
 
 export const createOrgInterviewMsg = async (
@@ -350,7 +376,7 @@ export const createOrgInterviewMsg = async (
     const interview = await db.orm.public.Interview.where({
       id: interviewId,
       slug: slug,
-      tenantId: organizationId
+      tenantId: organizationId,
     }).first();
 
     if (!interview) {
@@ -374,7 +400,7 @@ export const createOrgInterviewMsg = async (
   await db.orm.public.Message.create({
     interviewId: interviewId,
     userMsg,
-    aiMsg:aiMsg,
-    organizationId: organizationId
+    aiMsg: aiMsg,
+    organizationId: organizationId,
   });
 };
