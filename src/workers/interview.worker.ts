@@ -2,6 +2,7 @@ import { db } from "../prisma/db.js";
 import redis from "../lib/redis.js";
 import { Worker } from "bullmq";
 import { AIAssessmentQueue } from "../lib/queue.js";
+import { multiPartCompleted } from "../lib/s3.js";
 
 const worker = new Worker(
   "Interview",
@@ -24,8 +25,12 @@ const worker = new Worker(
         if (!interview) {
           throw new Error("Interview not found");
         }
+         if (!interview?.uploadId) {
+          throw new Error("uploadId is required");
+        }
+       
 
-        
+        await multiPartCompleted(interviewId,interview?.uploadId);
 
         await AIAssessmentQueue.add("skills_evaluation", {
           interviewId: interview.id,

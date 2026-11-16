@@ -12,6 +12,7 @@ import { createUser, createUserWorkspace, getUserWorkspaces, uploadUserResume,ge
     getUserNotifications,
     readUserNotification,
   getPublicReport} from '../controllers/user.controller.js';
+import { getQueryData } from '../controllers/org.controller.js';
 import { isolateTenant } from '../middleware/tenant.middleware.js';
 
 const upload = multer({
@@ -63,6 +64,12 @@ userRouter.get(
   authMiddlware,
   getUserInvitations,
 );
+
+userRouter.get("/user/search",
+   authMiddlware,
+  sessionContext,
+  getQueryData
+)
 
 
 userRouter.get(

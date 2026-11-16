@@ -3,6 +3,8 @@ import { randomBytes } from "crypto";
 import { emailQueue } from "../lib/queue.js";
 import { AppError } from "../Errors/App.error.js";
 import { and } from "@prisma/orm-postgres/orm-client";
+import { or } from "@prisma/orm-postgres/orm-client";
+import redis from "../lib/redis.js";
 
 type OrgDashOverview = {
   stats: {
@@ -18,7 +20,7 @@ export const createOrganization = async (
   password: string,
   orgName: string,
 ) => {
-  const result = await db.transaction(async (tx: any) => {
+  return await db.transaction(async (tx: any) => {
     const user = await tx.orm.public.User.create({
       name,
       email,
@@ -166,11 +168,19 @@ export const orgInvitationAccept = async (
   }
 
  return await db.transaction(async (tx: any) => {
-  const membership = await tx.orm.public.Membership.create({
-      organizationId: invitation.organizationId,
-      userId: userId,
-      role: invitation.role,
-    });
+ const membership = await tx.orm.public.Membership
+  .include('organization')
+  .create({
+    organizationId: invitation.organizationId,
+    userId,
+    role: invitation.role,
+  });
+
+ const session = await tx.orm.public.Session.where({
+    userId
+  }).update({
+    currentTenantId: invitation.organizationId
+  });
 
  const orgInvitation = await tx.orm.public.OrgInvitation.where({
       id: invitation.id,
@@ -185,6 +195,8 @@ export const orgInvitationAccept = async (
       type: "INVITATION",
       message: `${invitation.email} joined the organization`,
     });
+
+         await redis.del(`session:${session.id}`);
 
     return membership;
   });
@@ -221,7 +233,7 @@ export const deleteOrgMemberRole = async (memberId: number, orgId: string,userId
       organizationId: orgId,
     }).delete();
 
-  await tx.orm.public.Session.where({
+ const session = await tx.orm.public.Session.where({
       userId:memberId
     }).update({
       currentTenantId: null
@@ -245,8 +257,38 @@ export const deleteOrgMemberRole = async (memberId: number, orgId: string,userId
       message: `${user?.name} has been removed from the organization`,
     });
 
+     await redis.del(`tenant:${memberId}:${orgId}`);
+     await redis.del(`session:${session.id}`);
+
   });
 };
+
+
+export const getOrgQueryData = async(q:string,tenantId:string)=>{
+const interviews = await db.orm.public.Interview
+    .where({ tenantId })
+   .where((i) =>
+      or(
+        i.title.ilike(`%${q}%`),
+        i.role.ilike(`%${q}%`),
+        i.candidateEmail.ilike(`%${q}%`),
+        i.compName.ilike(`%${q}%`)
+      )
+    )
+    .all();
+
+    const candidates = await db.orm.public.Candidate
+    .where({ organizationId:tenantId })
+   .where((i) =>
+      or(
+        i.name.ilike(`%${q}%`),
+        i.email.ilike(`%${q}%`)
+      )
+    )
+    .all();
+
+    return {interviews,candidates}
+}
 
 export const getCandidateInfo = async (id: string) => {
   return db.orm.public.Interview.where((iv) =>

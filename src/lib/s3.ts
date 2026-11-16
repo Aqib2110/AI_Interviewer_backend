@@ -2,9 +2,10 @@ import { S3Client } from "@aws-sdk/client-s3";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { CreateMultipartUploadCommand, CompleteMultipartUploadCommand } from "@aws-sdk/client-s3";
+import { CreateMultipartUploadCommand, CompleteMultipartUploadCommand,ListPartsCommand,HeadObjectCommand } from "@aws-sdk/client-s3";
 import { UploadPartCommand } from "@aws-sdk/client-s3";
 import dotenv from 'dotenv';
+import { AppError } from "../Errors/App.error.js";
 
 dotenv.config();
 
@@ -74,6 +75,17 @@ const { UploadId } = await s3Client.send(
   })
 );
 
+if (!UploadId) {
+    throw new Error("Failed to initialize multipart upload");
+  }
+
+  console.log("Multipart upload initialized:", {
+    bucket: process.env.R2_BUCKET_NAME,
+    Key: `interviews/${key}/recording.webm`,
+    uploadId: UploadId,
+  });
+
+
 return UploadId;
 }
 
@@ -104,19 +116,134 @@ return urls;
   
 }
 
+export const getNextRecordingPartUrls = async (
+  key: string,
+  uploadId: string,
+  count = 20
+) => {
+  const uploadedParts: number[] = [];
+  let partNumberMarker: string | undefined;
 
-export const multiPartCompleted = async (key:string, uploadId:string, parts:{partNumber:number,etag:string}[])=>{
- return await s3Client.send(
-  new CompleteMultipartUploadCommand({
-    Bucket: process.env.R2_BUCKET_NAME!,
-    Key: `interviews/${key}/recording.webm`,
-    UploadId: uploadId,
-    MultipartUpload: {
-      Parts: parts.map(part => ({
-        PartNumber: part.partNumber,
-        ETag: part.etag,
-      })),
-    },
-  })
-);
-}
+  let isTruncated = true;
+
+  while (isTruncated) {
+    const result = await s3Client.send(
+      new ListPartsCommand({
+        Bucket: process.env.R2_BUCKET_NAME!,
+        Key: `interviews/${key}/recording.webm`,
+        UploadId: uploadId,
+        PartNumberMarker: partNumberMarker,
+      })
+    );
+
+    uploadedParts.push(
+      ...(result.Parts ?? []).map((part) => part.PartNumber!)
+    );
+
+    isTruncated = result.IsTruncated ?? false;
+    partNumberMarker = result.NextPartNumberMarker?.toString();
+  }
+
+  const uploadedNumbers = new Set(uploadedParts);
+
+  let startPart = 1;
+
+  while (uploadedNumbers.has(startPart)) {
+    startPart++;
+  }
+
+  if (startPart + count - 1 > 10000) {
+    throw new AppError("Maximum multipart upload parts reached", 400);
+  }
+
+  const urls = await Promise.all(
+    Array.from({ length: count }, async (_, index) => {
+      const partNumber = startPart + index;
+
+      const url = await getSignedUrl(
+        s3Client,
+        new UploadPartCommand({
+          Bucket: process.env.R2_BUCKET_NAME!,
+          Key: `interviews/${key}/recording.webm`,
+          UploadId: uploadId,
+          PartNumber: partNumber,
+        }),
+        { expiresIn: 900 }
+      );
+
+      return {
+        partNumber,
+        url,
+      };
+    })
+  );
+
+  return {
+    startPart,
+    count: urls.length,
+    urls,
+  };
+};
+
+
+export const multiPartCompleted = async (
+  key: string,
+  uploadId: string
+) => {
+  const videoKey = `interviews/${key}/recording.webm`;
+  const Bucket = process.env.R2_BUCKET_NAME!;
+
+  try {
+    await s3Client.send(
+      new HeadObjectCommand({
+        Bucket,
+        Key: videoKey,
+      })
+    );
+
+    return {
+      key: videoKey,
+      alreadyCompleted: true,
+    };
+  } catch (error: any) {
+    if (error.$metadata?.httpStatusCode !== 404) {
+      throw error;
+    }
+  }
+
+  const response = await s3Client.send(
+    new ListPartsCommand({
+      Bucket,
+      Key: videoKey,
+      UploadId: uploadId,
+    })
+  );
+
+  const parts = (response.Parts ?? [])
+    .filter((part) => part.PartNumber && part.ETag)
+    .map((part) => ({
+      PartNumber: part.PartNumber!,
+      ETag: part.ETag!,
+    }))
+    .sort((a, b) => a.PartNumber - b.PartNumber);
+
+  if (!parts.length) {
+    throw new Error("No recording parts found");
+  }
+
+  await s3Client.send(
+    new CompleteMultipartUploadCommand({
+      Bucket,
+      Key: videoKey,
+      UploadId: uploadId,
+      MultipartUpload: {
+        Parts: parts,
+      },
+    })
+  );
+
+  return {
+    key: videoKey,
+    alreadyCompleted: false,
+  };
+};

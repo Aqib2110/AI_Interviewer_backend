@@ -9,6 +9,7 @@ import {
   createUserInterviewSession,
   createUserInterview,
   createOrgInterview,
+  createSessionResumptionUpdate,
   getOrgInterviewDetails,
   getOrgInterviews,
   getUserInterviews,
@@ -100,5 +101,10 @@ interview.post("/interview/upload/start", createInterviewUpload);
 
 interview.post("/interview/video/sign-url", getInterviewVideoSignedUrls);
 
+
 interview.post("/interview/upload/complete", createInterviewVideoComplete);
+
+interview.patch("/interview/:interviewId/session-resumption", createSessionResumptionUpdate);
+
+
 

@@ -1,12 +1,13 @@
 import { sessionConfig } from "../lib/openai.js";
 import { db } from "../prisma/db.js";
 import { InterviewQueue } from "../lib/queue.js";
-import { OpenAIError } from "../Errors/openi.error.js";
 import { AppError } from "../Errors/App.error.js";
 import { randomBytes } from "crypto";
 import redis from "../lib/redis.js";
 import { geminiLiveSession } from "../lib/gemini.js";
 import { getSignedUrlFromS3 } from "../lib/s3.js";
+import { or,and } from "@prisma/orm-postgres/orm-client";
+import { createMultipartUpload } from "../lib/s3.js";
 import { interview } from "../routes/interview.routes.js";
 
 export const createOrgInterviewSession = async (slug: string) => {
@@ -28,6 +29,13 @@ export const createOrgInterviewSession = async (slug: string) => {
     throw new AppError("interview is already done", 403);
   }
 
+    if(candidateInterview?.aiSessionId)
+    {
+      const token = candidateInterview.aiSessionId;
+      const sessionResumptionHandle = candidateInterview?.sessionResumptionHandle;
+      return {token,sessionResumptionHandle};
+    }
+
   const token = await geminiLiveSession(
     candidateInterview?.description,
     candidateInterview?.skills,
@@ -37,11 +45,11 @@ export const createOrgInterviewSession = async (slug: string) => {
 
   const videoKey = `interviews/${candidateInterview?.id}/recording.webm`;
 
-  const transaction = await db.transaction(async (tx: any) => {
+  await db.transaction(async (tx: any) => {
   const interview = await db.orm.public.Interview.where({
       id: candidateInterview.id,
     }).update({
-      aiSessionId: JSON.stringify(token),
+      aiSessionId: token,
       status: "IN_PROGRESS",
       startedAt: now,
       videoKey: videoKey,
@@ -61,7 +69,7 @@ export const createOrgInterviewSession = async (slug: string) => {
       interviewId: candidateInterview.id,
     },
     {
-      delay: 3 * 60 * 1000,
+      delay: 4 * 60 * 1000,
       attempts: 3,
       backoff: {
         type: "exponential",
@@ -77,8 +85,17 @@ export const createOrgInterviewSession = async (slug: string) => {
     },
   );
 
-  return token;
+  return {token};
 };
+
+
+export const createSessionResumptionUpdate = async(handle:string,interviewId:string)=>{
+return await db.orm.public.Interview.where({
+  id:interviewId
+}).update({
+  sessionResumptionHandle:handle
+});
+}
 
 export const createUserInterviewSession = async (
   slug: string,
@@ -100,6 +117,13 @@ export const createUserInterviewSession = async (
   if (candidateInterview.status === "COMPELETED") {
     throw new AppError("interview is already done", 403);
   }
+
+    if(candidateInterview?.aiSessionId)
+    {
+      const token = candidateInterview.aiSessionId;
+      const sessionResumptionHandle = candidateInterview?.sessionResumptionHandle;
+      return {token,sessionResumptionHandle};
+    }
 
   const token = await geminiLiveSession(
     candidateInterview?.description,
@@ -138,7 +162,7 @@ export const createUserInterviewSession = async (
     },
   );
 
-  return token;
+  return {token};
 };
 
 export const createOrgInterview = async (
@@ -258,19 +282,28 @@ export const createUserInterview = async (
 };
 
 export const getUserInterviews = async (userId: number) => {
-  return await db.orm.public.Interview.where({
-    candidateId: userId,
-  })
+  return await db.orm.public.Interview.where((i) =>
+      or(
+        i.candidateId.eq(userId),
+        i.createdBy.eq(userId)
+      )
+    )
     .select("title", "slug", "candidateEmail", "createdAt", "status")
     .all();
 };
 
 export const getUserInterviewDetails = async (userId: number, slug: string) => {
   console.log(userId, slug, "info");
-  const interview = await db.orm.public.Interview.where({
-    candidateId: userId,
-    slug,
-  })
+ const interview = await db.orm.public.Interview
+  .where((i) =>
+    and(
+      i.slug.eq(slug),
+      or(
+        i.candidateId.eq(userId),
+        i.createdBy.eq(userId)
+      )
+    )
+  )
     .include("Message")
     .include("Report")
     .first();
@@ -322,6 +355,29 @@ export const createOrgCandidate = async (
     interviewId: interview.id,
   });
 };
+
+
+
+export const createInterviewUpload = async(interviewId:string)=>{
+  const interview = await db.orm.public.Interview.where({
+    id:interviewId
+  }).first();
+
+  if(interview?.uploadId)
+  {
+    return interview?.uploadId;
+  }
+  const uploadId = await createMultipartUpload(interviewId);
+        await db.orm.public.Interview.where({
+          id:interviewId
+      }).update({
+        uploadId
+      });
+
+  return uploadId;
+
+}
+
 
 export const createUserInterviewMsg = async (
   senderId: number,

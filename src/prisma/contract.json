@@ -291,6 +291,13 @@
                   "kind": "scalar"
                 }
               },
+              "sessionResumptionHandle": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "skills": {
                 "many": true,
                 "nullable": true,
@@ -332,6 +339,13 @@
               },
               "title": {
                 "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "uploadId": {
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -487,6 +501,9 @@
                 "score": {
                   "column": "score"
                 },
+                "sessionResumptionHandle": {
+                  "column": "sessionResumptionHandle"
+                },
                 "skills": {
                   "column": "skills"
                 },
@@ -504,6 +521,9 @@
                 },
                 "title": {
                   "column": "title"
+                },
+                "uploadId": {
+                  "column": "uploadId"
                 },
                 "videoKey": {
                   "column": "videoKey"
@@ -2018,6 +2038,11 @@
                   "nativeType": "int4",
                   "nullable": true
                 },
+                "sessionResumptionHandle": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "skills": {
                   "codecId": "pg/text@1",
                   "many": true,
@@ -2057,6 +2082,11 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "uploadId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "videoKey": {
                   "codecId": "pg/text@1",
@@ -3218,7 +3248,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "ccbc1d2d73a6269583fd4be203fb7cddb6ffc1f7a39c7fe7d5d5107c9b5885ad"
+    "storageHash": "01bdf056eaf4fdcf31b1ac34a434b096de9186fc9212c7a0fea00577ec18ce77"
   },
   "execution": {
     "executionHash": "d0ac2b7882cba607349b161ad3f513e26015ba623c74c483d4f1dff1e7ba5211",

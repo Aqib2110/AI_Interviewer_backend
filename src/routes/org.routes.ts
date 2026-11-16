@@ -12,6 +12,7 @@ import {
   deleteOrgMemberRole,
   getOrgWorkspaces,
   getOrgInvitations,
+  getQueryData,
   orgInvitationAccept,
   updateOrgMemberRole,
   getOrgDashOverview,
@@ -124,4 +125,12 @@ orgRouter.get("/organization/candidate/:id",
   isolateTenant,
   sessionContext,
   getCandidateInfo
+)
+
+
+orgRouter.get("/organization/search",
+   authMiddlware,
+  isolateTenant,
+  sessionContext,
+  getQueryData
 )

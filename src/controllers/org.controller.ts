@@ -12,8 +12,11 @@ import {
   getCandidateInfo as getCandidateInfoService,
   getOrgMembers as getOrgMembersService,
   getOrgInvitations as getOrgInvitationsService,
+  getOrgQueryData as getOrgQueryDataService,
   resendOrgInvitation as resendOrgInvitationService
 } from "../services/org.service.js";
+import { getUserQueryData as getUserQueryDataService } 
+from "../services/user.service.js";
 import { AppError } from "../Errors/App.error.js";
 
 export const createOrganization = async (
@@ -202,6 +205,37 @@ export const deleteOrgMemberRole = async (
   }
 };
 
+
+export const getQueryData = async(
+   req: Request,
+  res: Response,
+  next: NextFunction,
+)=>{
+  try {
+    let result;
+    const q = req.query.q?.toString();
+    const tenantId = (req as any).user.tenantId;
+    const userId = (req as any).user.id;
+    if(!q)
+    {
+      throw new AppError("query is required",400);
+    }
+    if(!tenantId)
+    {
+     result = await getUserQueryDataService(q,userId)
+    }
+    else{
+        result = await getOrgQueryDataService(q,tenantId);
+    }
+
+    return res.status(200).json({
+      result
+    })
+    
+  } catch (error) {
+    next(error);
+  }
+}
 
 export const getOrgDashOverview = async(
    req: Request,

@@ -191,6 +191,23 @@ export const getUserInvitations = async (email: string) => {
   );
 };
 
+
+
+export const getUserQueryData = async(q:string,userId:number)=>{
+const interviews = await db.orm.public.Interview
+    .where({ createdBy:userId })
+   .where((i) =>
+      or(
+        i.title.ilike(`%${q}%`),
+        i.role.ilike(`%${q}%`),
+        i.compName.ilike(`%${q}%`)
+      )
+    )
+    .all();
+
+    return {interviews};
+}
+
 export const getUserNotifications = async (
   tenantId: string,
   userId: number

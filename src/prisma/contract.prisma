@@ -161,6 +161,7 @@ model Interview {
   createdBy     Int
   candidateEmail String
   aiSessionId   String?
+  sessionResumptionHandle String?
   description   String
   candidateId   Int?
   status        pg.enum(State)
@@ -176,6 +177,7 @@ model Interview {
   endedAt       DateTime?
   tenantId      String?
   createdAt     DateTime  @default(now())
+  uploadId       String?
   interviewcandidate   Candidate?
   Report        Report?
   Message       Message[] @relation("interview")

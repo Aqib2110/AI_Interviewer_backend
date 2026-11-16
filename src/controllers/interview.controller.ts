@@ -12,13 +12,14 @@ import {
   getUserInterviews as getUserInterviewsService,
   createUserInterviewMsg as createUserInterviewMsgService,
   createOrgInterviewMsg as createOrgInterviewMsgService,
+  createSessionResumptionUpdate as createSessionResumptionUpdateService,
+  createInterviewUpload as createInterviewUploadService,
   createOrgCandidate as createOrgCandidateService,
   getUserInterviewDetails as getUserInterviewDetailsService,
 } from "../services/interview.service.js";
 import {
-  createMultipartUpload,
-  uploadPart,
   multiPartCompleted,
+  getNextRecordingPartUrls,
 } from "../lib/s3.js";
 
 export const createOrgInterviewSession = async (
@@ -35,16 +36,32 @@ export const createOrgInterviewSession = async (
       });
     }
 
-    const token = await createOrgInterviewSessionService(slug);
+    const session = await createOrgInterviewSessionService(slug);
 
     res.status(200).json({
-      token,
+      ...session,
     });
   } catch (error) {
     next(error);
   }
 };
 
+
+export const createSessionResumptionUpdate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const {handle,interviewId} = req.body;
+     await createSessionResumptionUpdateService(handle,interviewId);
+     return res.status(200).json({
+      message:"sessionResumption updated successfully"
+     })
+  } catch (error) {
+    next(error);
+  }
+}
 export const createUserInterviewSession = async (
   req: Request,
   res: Response,
@@ -59,10 +76,10 @@ export const createUserInterviewSession = async (
       });
     }
 
-    const token = createUserInterviewSessionService(slug, (req as any).user.id);
+    const session = createUserInterviewSessionService(slug, (req as any).user.id);
 
     res.status(200).json({
-      token: token,
+      ...session
     });
   } catch (error) {
     next(error);
@@ -306,7 +323,7 @@ export const createInterviewUpload = async (
       });
     }
 
-    const uploadId = await createMultipartUpload(interviewId);
+    const uploadId = await createInterviewUploadService(interviewId);
 
     return res.status(200).json({
       uploadId,
@@ -316,25 +333,30 @@ export const createInterviewUpload = async (
   }
 };
 
+
 export const getInterviewVideoSignedUrls = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { interviewId, uploadId, startPart, count } = req.body;
+    const { interviewId, uploadId } = req.body;
 
-    if (!interviewId || !uploadId || !startPart || !count) {
+    if (!interviewId || !uploadId ) {
       return res.status(403).json({
-        message: "interviewId,uploadId, startPart and count is required",
+        message: "interviewId and uploadId is required",
       });
     }
 
-    const urls = await uploadPart(interviewId, uploadId, startPart, count);
+    const {
+    startPart,
+    count,
+    urls,
+  } = await getNextRecordingPartUrls(interviewId, uploadId);
 
     return res.status(200).json({
-      count,
       startPart,
+      count,
       urls,
     });
   } catch (error) {
@@ -348,19 +370,18 @@ export const createInterviewVideoComplete = async (
   next: NextFunction,
 ) => {
   try {
-    const { interviewId, uploadId, parts } = req.body;
+    const { interviewId, uploadId } = req.body;
 
-    if (!interviewId || !uploadId || !parts.length) {
+    if (!interviewId || !uploadId) {
       return res.status(403).json({
         message: "interviewId,uploadId and parts are required",
       });
     }
 
-    const result = await multiPartCompleted(interviewId, uploadId, parts);
+    await multiPartCompleted(interviewId, uploadId);
 
     res.status(200).json({
       message: "Upload completed successfully",
-      key: result.Key,
     });
   } catch (error) {
     next(error);
