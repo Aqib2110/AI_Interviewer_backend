@@ -2,7 +2,7 @@ import { Router} from 'express';
 import { sessionContext } from '../middleware/session.middleware.js';
 import { authMiddlware } from '../middleware/auth.middleware.js';
 import multer from "multer";
-import { createUser, createUserWorkspace, getUserWorkspaces, uploadUserResume,getUserResume,
+import { createUser, uploadUserResume,getUserResume,
    getDashboardData, 
    getUserOrganizations,
    getUserDashOverview,
@@ -37,12 +37,7 @@ userRouter.post(
 );
 
 
-userRouter.post("/user/workspace",authMiddlware,sessionContext, createUserWorkspace)
-
 userRouter.get("/user/organizations",authMiddlware, getUserOrganizations)
-
-
-userRouter.get("/user/workspaces",authMiddlware,sessionContext, getUserWorkspaces)
 
 userRouter.get("/user/resume",authMiddlware,sessionContext, getUserResume)
 

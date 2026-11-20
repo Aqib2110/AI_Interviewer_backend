@@ -34,9 +34,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'01bdf056eaf4fdcf31b1ac34a434b096de9186fc9212c7a0fea00577ec18ce77'>;
+  StorageHashBase<'b99805c3a42bb41d7d7c72251d1187438a547a6256fc63f7872801003cb03f90'>;
 export type ExecutionHash =
-  ExecutionHashBase<'d0ac2b7882cba607349b161ad3f513e26015ba623c74c483d4f1dff1e7ba5211'>;
+  ExecutionHashBase<'526fa49dc2f03c7747139b01183ec32e2c26b17269281feded45ab7ce900ee1c'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -282,9 +282,13 @@ export type FieldOutputTypes = {
       readonly status: 'PENDING' | 'IN_PROGRESS' | 'COMPELETED';
       readonly tenantId: CodecTypes['pg/text@1']['output'] | null;
       readonly title: CodecTypes['pg/text@1']['output'];
+    };
+    readonly InterviewSegment: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/text@1']['output'];
+      readonly interviewId: CodecTypes['pg/text@1']['output'];
       readonly uploadId: CodecTypes['pg/text@1']['output'] | null;
-      readonly videoKey: CodecTypes['pg/text@1']['output'] | null;
-      readonly viedoUrl: CodecTypes['pg/text@1']['output'] | null;
+      readonly videoKey: CodecTypes['pg/text@1']['output'];
     };
     readonly Membership: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -405,9 +409,13 @@ export type FieldInputTypes = {
       readonly status: 'PENDING' | 'IN_PROGRESS' | 'COMPELETED';
       readonly tenantId: CodecTypes['pg/text@1']['input'] | null;
       readonly title: CodecTypes['pg/text@1']['input'];
+    };
+    readonly InterviewSegment: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/text@1']['input'];
+      readonly interviewId: CodecTypes['pg/text@1']['input'];
       readonly uploadId: CodecTypes['pg/text@1']['input'] | null;
-      readonly videoKey: CodecTypes['pg/text@1']['input'] | null;
-      readonly viedoUrl: CodecTypes['pg/text@1']['input'] | null;
+      readonly videoKey: CodecTypes['pg/text@1']['input'];
     };
     readonly Membership: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -528,9 +536,13 @@ export type StorageColumnTypes = {
       readonly status: 'PENDING' | 'IN_PROGRESS' | 'COMPELETED';
       readonly tenantId: CodecTypes['pg/text@1']['output'] | null;
       readonly title: CodecTypes['pg/text@1']['output'];
+    };
+    readonly InterviewSegment: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly id: CodecTypes['pg/text@1']['output'];
+      readonly interviewId: CodecTypes['pg/text@1']['output'];
       readonly uploadId: CodecTypes['pg/text@1']['output'] | null;
-      readonly videoKey: CodecTypes['pg/text@1']['output'] | null;
-      readonly viedoUrl: CodecTypes['pg/text@1']['output'] | null;
+      readonly videoKey: CodecTypes['pg/text@1']['output'];
     };
     readonly Membership: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -651,9 +663,13 @@ export type StorageColumnInputTypes = {
       readonly status: 'PENDING' | 'IN_PROGRESS' | 'COMPELETED';
       readonly tenantId: CodecTypes['pg/text@1']['input'] | null;
       readonly title: CodecTypes['pg/text@1']['input'];
+    };
+    readonly InterviewSegment: {
+      readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly id: CodecTypes['pg/text@1']['input'];
+      readonly interviewId: CodecTypes['pg/text@1']['input'];
       readonly uploadId: CodecTypes['pg/text@1']['input'] | null;
-      readonly videoKey: CodecTypes['pg/text@1']['input'] | null;
-      readonly viedoUrl: CodecTypes['pg/text@1']['input'] | null;
+      readonly videoKey: CodecTypes['pg/text@1']['input'];
     };
     readonly Membership: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -777,9 +793,7 @@ export namespace Models {
     status: 'PENDING' | 'IN_PROGRESS' | 'COMPELETED';
     tenantId: CodecTypes['pg/text@1']['output'] | null;
     title: CodecTypes['pg/text@1']['output'];
-    uploadId: CodecTypes['pg/text@1']['output'] | null;
-    videoKey: CodecTypes['pg/text@1']['output'] | null;
-    viedoUrl: CodecTypes['pg/text@1']['output'] | null;
+    InterviewSegment: public_InterviewSegment[];
     Message: public_Message[];
     Report: public_Report | null;
     candidate: public_User | null;
@@ -787,7 +801,22 @@ export namespace Models {
     tenant: public_Organization | null;
     user: public_User;
     readonly [RelationKeys]?:
-      'Message' | 'Report' | 'candidate' | 'interviewcandidate' | 'tenant' | 'user';
+      | 'InterviewSegment'
+      | 'Message'
+      | 'Report'
+      | 'candidate'
+      | 'interviewcandidate'
+      | 'tenant'
+      | 'user';
+  };
+  export type public_InterviewSegment = {
+    createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    id: CodecTypes['pg/text@1']['output'];
+    interviewId: CodecTypes['pg/text@1']['output'];
+    uploadId: CodecTypes['pg/text@1']['output'] | null;
+    videoKey: CodecTypes['pg/text@1']['output'];
+    interview: public_Interview;
+    readonly [RelationKeys]?: 'interview';
   };
   export type public_Membership = {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -936,6 +965,7 @@ export declare const models: {
   public: {
     Candidate: Models.public_Candidate;
     Interview: Models.public_Interview;
+    InterviewSegment: Models.public_InterviewSegment;
     Membership: Models.public_Membership;
     Message: Models.public_Message;
     Notification: Models.public_Notification;
@@ -1158,21 +1188,6 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
-                readonly uploadId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly videoKey: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly viedoUrl: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
               };
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [];
@@ -1230,6 +1245,60 @@ type ContractBase = Omit<
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'User';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly InterviewSegment: {
+              columns: {
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly id: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly interviewId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly uploadId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly videoKey: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['videoKey'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'InterviewSegment_interviewId_idx_766b64f2';
+                  readonly prefix: 'InterviewSegment_interviewId_idx';
+                  readonly columns: readonly ['interviewId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'InterviewSegment';
+                    readonly columns: readonly ['interviewId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Interview';
                     readonly columns: readonly ['id'];
                   };
                 },
@@ -2035,6 +2104,10 @@ type ContractBase = Omit<
   readonly roots: {
     readonly Candidate: { readonly namespace: 'public' & NamespaceId; readonly model: 'Candidate' };
     readonly Interview: { readonly namespace: 'public' & NamespaceId; readonly model: 'Interview' };
+    readonly InterviewSegment: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'InterviewSegment';
+    };
     readonly Membership: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'Membership';
@@ -2247,20 +2320,19 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly uploadId: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly videoKey: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly viedoUrl: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
             };
             readonly relations: {
+              readonly InterviewSegment: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'InterviewSegment';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['interviewId'];
+                };
+              };
               readonly Message: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -2350,9 +2422,58 @@ type ContractBase = Omit<
                 readonly status: { readonly column: 'status' };
                 readonly tenantId: { readonly column: 'tenantId' };
                 readonly title: { readonly column: 'title' };
+              };
+            };
+          };
+          readonly InterviewSegment: {
+            readonly fields: {
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly interviewId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly uploadId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly videoKey: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+            };
+            readonly relations: {
+              readonly interview: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Interview';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['interviewId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'InterviewSegment';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly id: { readonly column: 'id' };
+                readonly interviewId: { readonly column: 'interviewId' };
                 readonly uploadId: { readonly column: 'uploadId' };
                 readonly videoKey: { readonly column: 'videoKey' };
-                readonly viedoUrl: { readonly column: 'viedoUrl' };
               };
             };
           };
@@ -3233,6 +3354,14 @@ type ContractBase = Omit<
           readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
           readonly ref: {
             readonly entry: 'Interview';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'InterviewSegment';
             readonly field: 'id';
             readonly namespace: 'public';
           };

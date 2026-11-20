@@ -14,11 +14,11 @@ import {
   getOrgInterviews,
   getUserInterviews,
   getUserInterviewDetails,
+  interviewSegmentComplete,
   createUserInterviewMsg,
   createOrgInterviewMsg,
   createInterviewUpload,
   getInterviewVideoSignedUrls,
-  createInterviewVideoComplete,
   createOrgCandidate
 } from "../controllers/interview.controller.js";
 
@@ -102,7 +102,13 @@ interview.post("/interview/upload/start", createInterviewUpload);
 interview.post("/interview/video/sign-url", getInterviewVideoSignedUrls);
 
 
-interview.post("/interview/upload/complete", createInterviewVideoComplete);
+// interview.post("/interview/upload/complete", createInterviewVideoComplete);
+
+
+interview.post("/interview/segments/:segmentId/complete", interviewSegmentComplete);
+
+
+
 
 interview.patch("/interview/:interviewId/session-resumption", createSessionResumptionUpdate);
 

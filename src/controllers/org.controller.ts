@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import {
   createOrganization as createOrganizationService,
-  createOrgWorkspace as createOrgWorkspaceService,
-  getOrgWorkspaces as getOrgWorkspacesService,
   createOrgInvitation as createOrgInvitationService,
   orgInvitationAccept as orgInvitationAcceptService,
   deleteOrgMemberRole as deleteOrgMemberRoleService,
@@ -37,49 +35,6 @@ export const createOrganization = async (
   }
 };
 
-export const createOrgWorkspace = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  const { name } = req.body;
-  try {
-    await createOrgWorkspaceService(
-      name,
-      (req as any).user.id,
-      (req as any).user.tenantId,
-    );
-
-    return res.status(200).json({
-      message: "organization created successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-
-
-
-
-export const getOrgWorkspaces = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const subOrg = await getOrgWorkspacesService(
-      (req as any).user.id,
-      (req as any).user.tenantId,
-    );
-
-    return res.status(200).json({
-      subOrg,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 export const createOrgInvitation = async (
   req: Request,

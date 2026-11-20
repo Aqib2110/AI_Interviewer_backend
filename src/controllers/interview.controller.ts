@@ -10,6 +10,7 @@ import {
   getOrgInterviewDetails as getOrgInterviewDetailsService,
   createUserInterview as createUserInterviewService,
   getUserInterviews as getUserInterviewsService,
+  interviewSegmentComplete as interviewSegmentCompleteService,
   createUserInterviewMsg as createUserInterviewMsgService,
   createOrgInterviewMsg as createOrgInterviewMsgService,
   createSessionResumptionUpdate as createSessionResumptionUpdateService,
@@ -21,6 +22,7 @@ import {
   multiPartCompleted,
   getNextRecordingPartUrls,
 } from "../lib/s3.js";
+import { db } from "../prisma/db.js";
 
 export const createOrgInterviewSession = async (
   req: Request,
@@ -315,15 +317,15 @@ export const createInterviewUpload = async (
   next: NextFunction,
 ) => {
   try {
-    const { interviewId } = req.body;
+    const { interviewId,segmentId } = req.body;
 
-    if (!interviewId) {
+    if (!interviewId || !segmentId) {
       return res.status(403).json({
-        message: "interviewId is required",
+        message: "interviewId and segmentid is required",
       });
     }
 
-    const uploadId = await createInterviewUploadService(interviewId);
+    const uploadId = await createInterviewUploadService(interviewId,segmentId);
 
     return res.status(200).json({
       uploadId,
@@ -334,13 +336,39 @@ export const createInterviewUpload = async (
 };
 
 
+export const interviewSegmentComplete = async(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+     const {uploadId} = req.body;
+    const segmentId = req.params.segmentId.toString();
+
+
+    if (!uploadId || !segmentId) {
+      throw new AppError("uploadId and segmentId is required", 401);
+    }
+    
+    await interviewSegmentCompleteService(uploadId, segmentId);
+
+    res.status(200).json({
+      message: "Upload completed successfully",
+    });
+
+    } catch (error) {
+    next(error)
+  }
+}
+
+
 export const getInterviewVideoSignedUrls = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { interviewId, uploadId } = req.body;
+    const { interviewId, uploadId,segmentId } = req.body;
 
     if (!interviewId || !uploadId ) {
       return res.status(403).json({
@@ -348,40 +376,26 @@ export const getInterviewVideoSignedUrls = async (
       });
     }
 
+    const segment = await db.orm.public.InterviewSegment.where({
+      interviewId,
+      id: segmentId
+    }).first();
+
+    if(!segment)
+    {
+      throw new AppError("segment not found",401)
+    }
+
     const {
     startPart,
     count,
     urls,
-  } = await getNextRecordingPartUrls(interviewId, uploadId);
+  } = await getNextRecordingPartUrls(segment?.videoKey, uploadId);
 
     return res.status(200).json({
       startPart,
       count,
       urls,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const createInterviewVideoComplete = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const { interviewId, uploadId } = req.body;
-
-    if (!interviewId || !uploadId) {
-      return res.status(403).json({
-        message: "interviewId,uploadId and parts are required",
-      });
-    }
-
-    await multiPartCompleted(interviewId, uploadId);
-
-    res.status(200).json({
-      message: "Upload completed successfully",
     });
   } catch (error) {
     next(error);

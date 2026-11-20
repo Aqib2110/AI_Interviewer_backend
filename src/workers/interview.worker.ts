@@ -17,6 +17,7 @@ const worker = new Worker(
           .where({
             id: interviewId,
           })
+          .include("InterviewSegment")
           .update({
             endedAt: Temporal.Now.instant(),
             status:"COMPELETED"
@@ -25,12 +26,24 @@ const worker = new Worker(
         if (!interview) {
           throw new Error("Interview not found");
         }
-         if (!interview?.uploadId) {
-          throw new Error("uploadId is required");
+        if(interview.status === "COMPELETED")
+        {
+        if (!interview?.InterviewSegment.length) {
+          throw new Error("segments are required");
         }
        
+        for (const key of interview?.InterviewSegment)
+       {
+        const uploadId = key?.uploadId || null;
+        const videoKey = key?.videoKey || null;
 
-        await multiPartCompleted(interviewId,interview?.uploadId);
+        if(uploadId && videoKey)
+        {
+        await multiPartCompleted(videoKey,uploadId);
+        }
+        }
+        }
+        
 
         await AIAssessmentQueue.add("skills_evaluation", {
           interviewId: interview.id,
@@ -64,6 +77,10 @@ worker.on("completed", (job) => {
 
 worker.on("failed", (job, error) => {
   console.error("Interview job failed:", job?.id, error);
+});
+
+worker.on("stalled", (jobId) => {
+  console.error("Interview job stalled:", jobId);
 });
 
 worker.on("error", (error) => {

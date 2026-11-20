@@ -171,30 +171,36 @@ model Interview {
   score         Int?
   slug          String
   skills        String[]?
-  videoKey     String?
-  viedoUrl    String?
   startedAt     DateTime?
   endedAt       DateTime?
   tenantId      String?
   createdAt     DateTime  @default(now())
-  uploadId       String?
   interviewcandidate   Candidate?
   Report        Report?
   Message       Message[] @relation("interview")
+  InterviewSegment InterviewSegment[]
   tenant        Organization? @relation(fields: [tenantId], references: [id])
   user          User @relation("createdBy", fields: [createdBy], references: [id])
   candidate     User? @relation("candidate", fields: [candidateId], references: [id])
 }
 
+model InterviewSegment {
+  id          String   @id @default(uuid())
+  interviewId String
+  videoKey    String   @unique
+  uploadId    String?
+  createdAt   DateTime @default(now())
+  interview Interview @relation(fields: [interviewId], references: [id])
+}
+
 model Message {
   id             String    @id @default(uuid())
   userMsg        String
-  aiMsg      String
+  aiMsg          String
   senderId       Int?
   organizationId String?
-  interviewId    String
+  interviewId    String    
   createdAt      DateTime  @default(now())
-
   sender         User? @relation(fields: [senderId], references: [id])
   organization   Organization? @relation(fields: [organizationId], references: [id])
   interview      Interview @relation(

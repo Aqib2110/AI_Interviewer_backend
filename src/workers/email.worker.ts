@@ -60,12 +60,12 @@ const worker = new Worker(
   }
 );
 
-console.log("WORKER:", {
-  host: redis.options.host,
-  port: redis.options.port,
-  db: redis.options.db,
-  queue: worker.name,
-});
+// console.log("WORKER:", {
+//   host: redis.options.host,
+//   port: redis.options.port,
+//   db: redis.options.db,
+//   queue: worker.name,
+// });
 
 worker.on("ready", () => {
   console.log("Email worker is ready and waiting for jobs");

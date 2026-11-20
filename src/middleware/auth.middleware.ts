@@ -6,7 +6,7 @@ export const authMiddlware = (
   next: NextFunction,
 ) => {
   try {
-     const allowedOrigins = process.env.FRONTEND_URLS
+     const allowedOrigins = process.env.FRONTEND_URL
       ?.split(",")
       .map(origin => origin.trim().replace(/\/$/, ""));
 

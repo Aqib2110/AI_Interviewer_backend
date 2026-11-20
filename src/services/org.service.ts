@@ -42,24 +42,6 @@ export const createOrganization = async (
   });
 };
 
-export const createOrgWorkspace = async (
-  name: string,
-  userId: number,
-  tenantId: string,
-) => {
-  return await db.orm.public.Workspace.create({
-    name,
-    adminId: userId,
-    orgId: tenantId,
-  });
-};
-
-export const getOrgWorkspaces = async (adminId: number, orgId: string) => {
-  return db.orm.public.Workspace.where({
-    adminId: adminId,
-    orgId: orgId,
-  });
-};
 
 export const createOrgInvitation = async (
   email: string,
@@ -150,7 +132,7 @@ export const orgInvitationAccept = async (
 ) => {
   const invitation = await db.orm.public.OrgInvitation.where({
     tokenHash,
-    email: email,
+    email,
   }).first();
 
   if (!invitation) {
@@ -167,39 +149,51 @@ export const orgInvitationAccept = async (
     throw new AppError("invitation already accepted", 409);
   }
 
- return await db.transaction(async (tx: any) => {
- const membership = await tx.orm.public.Membership
-  .include('organization')
-  .create({
-    organizationId: invitation.organizationId,
-    userId,
-    role: invitation.role,
-  });
+  const result = await db.transaction(async (tx: any) => {
+    const orgInvitation = await tx.orm.public.OrgInvitation
+      .where({
+        id: invitation.id,
+        status: "PENDING",
+      })
+      .include("organization")
+      .update({
+        status: "ACCEPTED",
+      });
 
- const session = await tx.orm.public.Session.where({
-    userId
-  }).update({
-    currentTenantId: invitation.organizationId
-  });
+    if (!orgInvitation) {
+      throw new AppError("invitation already accepted", 409);
+    }
 
- const orgInvitation = await tx.orm.public.OrgInvitation.where({
-      id: invitation.id,
-    }).include("organization").update({
-      status: "ACCEPTED",
+    const membership = await tx.orm.public.Membership
+      .include("organization")
+      .create({
+        organizationId: invitation.organizationId,
+        userId,
+        role: invitation.role,
+      });
+
+    const session = await tx.orm.public.Session.where({
+      userId,
+    }).update({
+      currentTenantId: invitation.organizationId,
     });
 
     await tx.orm.public.Notification.create({
-      targetUserId:userId,
+      targetUserId: userId,
       actorId: orgInvitation.organization.adminId,
       tenantId: invitation.organizationId,
       type: "INVITATION",
       message: `${invitation.email} joined the organization`,
     });
 
-         await redis.del(`session:${session.id}`);
-
-    return membership;
+    return { membership, session };
   });
+
+  if (result.session?.id) {
+    await redis.del(`session:${result.session.id}`);
+  }
+
+  return result.membership;
 };
 
 export const updateOrgMemberRole = async (
@@ -208,59 +202,88 @@ export const updateOrgMemberRole = async (
   tenantId: string,
 ) => {
   return await db.transaction(async (tx: any) => {
-    const updatedMembership = await tx.orm.public.Membership.where({
-      userId: memberId,
-      organizationId: tenantId,
-    }).include("user").update({
-      role,
-    });
+    const updatedMembership = await tx.orm.public.Membership
+      .where({
+        userId: memberId,
+        organizationId: tenantId,
+      })
+      .include("user")
+      .update({
+        role,
+      });
+
+    if (!updatedMembership) {
+      throw new AppError("Organization member not found", 404);
+    }
 
     await tx.orm.public.Notification.create({
-      targetUserId:memberId,
-      tenantId: tenantId,
+      targetUserId: memberId,
+      tenantId,
       type: "ROLE_UPDATE",
-      message: `${updatedMembership?.user?.name}'s role has been updated to ${role}`,
+      message: `${updatedMembership.user?.name ?? "Member"}'s role has been updated to ${role}`,
     });
 
     return updatedMembership;
   });
 };
 
-export const deleteOrgMemberRole = async (memberId: number, orgId: string,userId:number) => {
-  return db.transaction(async (tx: any) => {
-   await tx.orm.public.Membership.where({
+export const deleteOrgMemberRole = async (
+  memberId: number,
+  orgId: string,
+  userId: number,
+) => {
+  const result = await db.transaction(async (tx: any) => {
+    const user = await tx.orm.public.User.where({
+      id: memberId,
+    }).first();
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const member = await tx.orm.public.Membership.where({
       userId: memberId,
       organizationId: orgId,
     }).delete();
 
- const session = await tx.orm.public.Session.where({
-      userId:memberId
+    if (!member) {
+      throw new AppError("Organization member doesn't exist", 404);
+    }
+
+    const session = await tx.orm.public.Session.where({
+      userId: memberId,
+      currentTenantId: orgId,
     }).update({
-      currentTenantId: null
+      currentTenantId: null,
     });
 
-  const user = await tx.orm.public.User.where({
-    id:memberId
-  }).first();
-
-
     await tx.orm.public.OrgInvitation.where({
-      email:user.email,
-      organizationId:orgId
+      email: user.email,
+      organizationId: orgId,
+      status: "PENDING",
     }).delete();
 
     await tx.orm.public.Notification.create({
       actorId: userId,
       targetUserId: memberId,
       tenantId: orgId,
-      type: "ROLE_UPDATE",
-      message: `${user?.name} has been removed from the organization`,
+      type: "MEMBER_REMOVED",
+      message: `${user.name} has been removed from the organization`,
     });
 
-     await redis.del(`tenant:${memberId}:${orgId}`);
-     await redis.del(`session:${session.id}`);
-
+    return {
+      member,
+      sessionId: session?.id,
+    };
   });
+
+  await redis.del(`tenant:${memberId}:${orgId}`);
+
+  if (result.sessionId) {
+    await redis.del(`session:${result.sessionId}`);
+  }
+
+  return result.member;
 };
 
 

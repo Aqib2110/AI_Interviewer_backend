@@ -64,36 +64,35 @@ export const uploadUserResume = async (
   return resume;
 };
 
-export const createUserWorkspace = async (name: string, userId: number) => {
-  return await db.orm.public.Workspace.create({
-    name,
-    adminId: userId,
-  });
-};
 
-export const getUserWorkspaces = async (userId: number) => {
-  return await db.orm.public.Workspace.where({
-    adminId: userId,
-  });
-};
-
-export const switchContext = async (userId: number, newOrgId?: string) => {
+export const switchContext = async (
+  userId: number,
+  newOrgId?: string,
+) => {
   if (newOrgId) {
     const membership = await db.orm.public.Membership.where({
-      userId: userId,
+      userId,
       organizationId: newOrgId,
     }).first();
 
     if (!membership) {
-      throw new AppError("membership not found", 404);
+      throw new AppError("Membership not found", 404);
     }
   }
+
   const session = await db.orm.public.Session.where({
-    userId: userId,
+    userId,
   }).update({
-    currentTenantId: newOrgId ? newOrgId : null,
+    currentTenantId: newOrgId ?? null,
   });
-  await redis.del(`session:${session?.id}`);
+
+  if (!session) {
+    throw new AppError("Session not found", 404);
+  }
+
+  await redis.del(`session:${session.id}`);
+
+  return session;
 };
 
 export const getDashboardData = async (userId: number) => {
@@ -151,11 +150,11 @@ export const getPublicReport = async (token: string) => {
       "score",
       "status",
       "skills",
-      "videoKey",
       "createdAt",
       "tenantId",
       "endedAt",
     )
+    .include("InterviewSegment")
     .include("interviewcandidate")
     .include("Message")
     .include("Report")
@@ -164,14 +163,16 @@ export const getPublicReport = async (token: string) => {
   if (!interview) {
     throw new AppError("Interview not found", 404);
   }
-
-  const videoUrl = interview.videoKey
-    ? await getSignedUrlFromS3(interview.videoKey)
-    : null;
+   let videoUrls = [];
+  for (const key of interview?.InterviewSegment)
+  {
+   const url = await getSignedUrlFromS3(key?.videoKey);
+   videoUrls.push(url)
+  }
 
   return {
     ...interview,
-    videoUrl,
+    videoUrls,
   };
 };
 

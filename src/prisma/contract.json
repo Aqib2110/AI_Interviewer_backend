@@ -12,6 +12,10 @@
       "model": "Interview",
       "namespace": "public"
     },
+    "InterviewSegment": {
+      "model": "InterviewSegment",
+      "namespace": "public"
+    },
     "Membership": {
       "model": "Membership",
       "namespace": "public"
@@ -343,30 +347,24 @@
                   "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
-              },
-              "uploadId": {
-                "nullable": true,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-                }
-              },
-              "videoKey": {
-                "nullable": true,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-                }
-              },
-              "viedoUrl": {
-                "nullable": true,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-                }
               }
             },
             "relations": {
+              "InterviewSegment": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "interviewId"
+                  ]
+                },
+                "to": {
+                  "model": "InterviewSegment",
+                  "namespace": "public"
+                }
+              },
               "Message": {
                 "cardinality": "1:N",
                 "on": {
@@ -521,19 +519,88 @@
                 },
                 "title": {
                   "column": "title"
+                }
+              },
+              "namespaceId": "public",
+              "table": "Interview"
+            }
+          },
+          "InterviewSegment": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "interviewId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "uploadId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "videoKey": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "interview": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "interviewId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Interview",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "interviewId": {
+                  "column": "interviewId"
                 },
                 "uploadId": {
                   "column": "uploadId"
                 },
                 "videoKey": {
                   "column": "videoKey"
-                },
-                "viedoUrl": {
-                  "column": "viedoUrl"
                 }
               },
               "namespaceId": "public",
-              "table": "Interview"
+              "table": "InterviewSegment"
             }
           },
           "Membership": {
@@ -2082,21 +2149,6 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
-                },
-                "uploadId": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": true
-                },
-                "videoKey": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": true
-                },
-                "viedoUrl": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": true
                 }
               },
               "foreignKeys": [
@@ -2181,6 +2233,79 @@
                 ]
               },
               "uniques": []
+            },
+            "InterviewSegment": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "interviewId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "uploadId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "videoKey": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "interviewId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "InterviewSegment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Interview"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "interviewId"
+                  ],
+                  "name": "InterviewSegment_interviewId_idx_766b64f2",
+                  "prefix": "InterviewSegment_interviewId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "videoKey"
+                  ]
+                }
+              ]
             },
             "Membership": {
               "columns": {
@@ -3248,10 +3373,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "01bdf056eaf4fdcf31b1ac34a434b096de9186fc9212c7a0fea00577ec18ce77"
+    "storageHash": "b99805c3a42bb41d7d7c72251d1187438a547a6256fc63f7872801003cb03f90"
   },
   "execution": {
-    "executionHash": "d0ac2b7882cba607349b161ad3f513e26015ba623c74c483d4f1dff1e7ba5211",
+    "executionHash": "526fa49dc2f03c7747139b01183ec32e2c26b17269281feded45ab7ce900ee1c",
     "mutations": {
       "defaults": [
         {
@@ -3272,6 +3397,17 @@
           },
           "ref": {
             "entry": "Interview",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "InterviewSegment",
             "field": "id",
             "namespace": "public"
           }

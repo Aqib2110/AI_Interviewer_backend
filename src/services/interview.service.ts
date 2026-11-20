@@ -1,19 +1,18 @@
-import { sessionConfig } from "../lib/openai.js";
 import { db } from "../prisma/db.js";
 import { InterviewQueue } from "../lib/queue.js";
 import { AppError } from "../Errors/App.error.js";
 import { randomBytes } from "crypto";
 import redis from "../lib/redis.js";
 import { geminiLiveSession } from "../lib/gemini.js";
-import { getSignedUrlFromS3 } from "../lib/s3.js";
+import { getSignedUrlFromS3, multiPartCompleted } from "../lib/s3.js";
 import { or,and } from "@prisma/orm-postgres/orm-client";
 import { createMultipartUpload } from "../lib/s3.js";
-import { interview } from "../routes/interview.routes.js";
+import { interviewRemainingTime } from "../lib/Time.js";
+import { randomUUID } from "node:crypto";
 
 export const createOrgInterviewSession = async (slug: string) => {
-  const candidateInterview = await db.orm.public.Interview.where({
-    slug: slug,
-  })
+  const candidateInterview = await db.orm.public.Interview
+    .where({ slug })
     .include("user")
     .first();
 
@@ -28,47 +27,45 @@ export const createOrgInterviewSession = async (slug: string) => {
   if (candidateInterview.status === "COMPELETED") {
     throw new AppError("interview is already done", 403);
   }
+  
+if(candidateInterview.status === "PENDING")
+{
+    const now = Temporal.Now.instant();
+    await db.transaction(async (tx: any) => {
+    const interview = await tx.orm.public.Interview
+      .where({
+        id: candidateInterview.id,
+        startedAt: null,
+        status: "PENDING",
+      })
+      .update({
+        status: "IN_PROGRESS",
+        startedAt: now
+      });
 
-    if(candidateInterview?.aiSessionId)
-    {
-      const token = candidateInterview.aiSessionId;
-      const sessionResumptionHandle = candidateInterview?.sessionResumptionHandle;
-      return {token,sessionResumptionHandle};
+       if (!interview) {
+      throw new AppError("interview is already in progress", 409);
     }
-
-  const token = await geminiLiveSession(
-    candidateInterview?.description,
-    candidateInterview?.skills,
-  );
-
-  const now = Temporal.Now.instant();
-
-  const videoKey = `interviews/${candidateInterview?.id}/recording.webm`;
-
-  await db.transaction(async (tx: any) => {
-  const interview = await db.orm.public.Interview.where({
-      id: candidateInterview.id,
-    }).update({
-      aiSessionId: token,
-      status: "IN_PROGRESS",
-      startedAt: now,
-      videoKey: videoKey,
-    });
+     
     await tx.orm.public.Notification.create({
       tenantId: candidateInterview.tenantId,
       actorId: candidateInterview.user.id,
-      targetUserId:interview?.candidateId,
+      targetUserId: interview.candidateId,
       type: "INTERVIEW_STARTED",
       message: `${candidateInterview.candidateEmail} has started the interview.`,
     });
   });
 
-  await InterviewQueue.add(
+    const id = randomUUID();
+
+
+    const job =  await InterviewQueue.add(
     "expire_interview",
     {
       interviewId: candidateInterview.id,
     },
     {
+      jobId: `expire_interview_${id}_${candidateInterview.id}`,
       delay: 4 * 60 * 1000,
       attempts: 3,
       backoff: {
@@ -82,11 +79,69 @@ export const createOrgInterviewSession = async (slug: string) => {
       removeOnFail: {
         age: 60 * 60 * 24 * 7,
       },
-    },
+    }
+    );
+
+
+  console.log("JOB CREATED:", {
+  id: job.id,
+  name: job.name,
+  delay: job.opts.delay,
+  timestamp: job.timestamp,
+  processedOn: job.processedOn,
+});
+
+console.log("JOB STATE:", await job.getState());
+
+}
+
+ const sessionResumptionHandle =
+    candidateInterview.sessionResumptionHandle ?? null;
+const remTime = candidateInterview.startedAt ? interviewRemainingTime(candidateInterview) : null;
+
+
+  const id = randomUUID();
+  const videoKey = `interviews/${candidateInterview?.id}/${id}/recording.webm`;
+
+ const segment = await db.orm.public.InterviewSegment.create({
+    interviewId: candidateInterview.id,
+    videoKey
+    });
+
+
+   const token = await geminiLiveSession(
+    candidateInterview?.description,
+    candidateInterview?.skills,
+    candidateInterview?.durationMinutes,
+    remTime
   );
 
-  return {token};
+ const elapsedSeconds = candidateInterview.startedAt
+  ? Math.max(
+      0,
+      Math.floor(
+        (Date.now() - candidateInterview.startedAt.epochMilliseconds) / 1000
+      )
+    )
+  : null;
+
+   return {token,sessionResumptionHandle,elapsedSeconds,segmentId:segment.id};
+
 };
+
+
+export const interviewSegmentComplete = async(uploadId:string,segmentId:string)=>{
+const interviewSegment = await db.orm.public.InterviewSegment.where({
+  id:segmentId,
+  uploadId
+}).first();
+if(!interviewSegment)
+{
+  throw new AppError("interview segment not found",403)
+}
+const videoKey = interviewSegment?.videoKey;
+await multiPartCompleted(videoKey,uploadId);
+}
 
 
 export const createSessionResumptionUpdate = async(handle:string,interviewId:string)=>{
@@ -118,27 +173,24 @@ export const createUserInterviewSession = async (
     throw new AppError("interview is already done", 403);
   }
 
-    if(candidateInterview?.aiSessionId)
-    {
-      const token = candidateInterview.aiSessionId;
-      const sessionResumptionHandle = candidateInterview?.sessionResumptionHandle;
-      return {token,sessionResumptionHandle};
-    }
 
-  const token = await geminiLiveSession(
-    candidateInterview?.description,
-    candidateInterview?.skills,
-  );
-  const videoKey = `interviews/${candidateInterview?.id}/recording.webm`;
 
-  await db.orm.public.Interview.where({
+ 
+ if(candidateInterview.status === "PENDING")
+ {
+ const interview = await db.orm.public.Interview.where({
     id: candidateInterview.id,
+    status:"PENDING",
+    startedAt:null
   }).update({
-    aiSessionId: JSON.stringify(token),
     status: "IN_PROGRESS",
-    startedAt: Temporal.Now.instant(),
-    videoKey,
+    startedAt: Temporal.Now.instant()
   });
+
+  if(!interview)
+  {
+    throw new AppError("interview is already in progress",409)
+  }
 
   await InterviewQueue.add(
     "expire_interview",
@@ -146,6 +198,7 @@ export const createUserInterviewSession = async (
       interviewId: candidateInterview.id,
     },
     {
+      jobId: `expire_interview_${candidateInterview.id}`,
       delay: (candidateInterview.durationMinutes + 2) * 60 * 1000,
       attempts: 3,
       backoff: {
@@ -159,10 +212,39 @@ export const createUserInterviewSession = async (
       removeOnFail: {
         age: 60 * 60 * 24 * 7,
       },
-    },
+    }
+  );
+ }
+
+  const sessionResumptionHandle =
+    candidateInterview.sessionResumptionHandle ?? null;
+  const remTime = candidateInterview.startedAt ? interviewRemainingTime(candidateInterview) : null;
+
+  const id = randomUUID();
+  const videoKey = `interviews/${candidateInterview?.id}/${id}/recording.webm`;
+
+ const segment = await db.orm.public.InterviewSegment.create({
+    interviewId: candidateInterview.id,
+    videoKey
+  });
+
+    const token = await geminiLiveSession(
+    candidateInterview?.description,
+    candidateInterview?.skills,
+    candidateInterview?.durationMinutes,
+    remTime
   );
 
-  return {token};
+ const elapsedSeconds = candidateInterview.startedAt
+  ? Math.max(
+      0,
+      Math.floor(
+        (Date.now() - candidateInterview.startedAt.epochMilliseconds) / 1000
+      )
+    )
+  : null;
+
+  return {token,sessionResumptionHandle,elapsedSeconds,segmentId:segment.id};
 };
 
 export const createOrgInterview = async (
@@ -229,10 +311,10 @@ export const getOrgInterviewDetails = async (
       "status",
       "skills",
       "createdAt",
-      "videoKey",
       "tenantId",
       "endedAt",
     )
+    .include("InterviewSegment")
     .include("interviewcandidate")
     .include("Message")
     .include("Report")
@@ -242,13 +324,20 @@ export const getOrgInterviewDetails = async (
     throw new AppError("Interview not found", 404);
   }
 
-  const videoUrl = interview.videoKey
-    ? await getSignedUrlFromS3(interview.videoKey)
-    : null;
+    let videoUrls = [];
+    if(interview?.InterviewSegment)
+    {
+     for (const key of interview?.InterviewSegment)
+    {
+    const videoKey = key?.videoKey || null;
+   const url = videoKey ? await getSignedUrlFromS3(videoKey) : null;
+    videoUrls.push(url)
+    }
+    }
 
   return {
     ...interview,
-    videoUrl,
+    videoUrls,
   };
 };
 
@@ -304,17 +393,25 @@ export const getUserInterviewDetails = async (userId: number, slug: string) => {
       )
     )
   )
+  .include("InterviewSegment")
     .include("Message")
     .include("Report")
     .first();
 
-  const videoUrl = interview?.videoKey
-    ? await getSignedUrlFromS3(interview?.videoKey)
-    : null;
+    let videoUrls = [];
+    if(interview?.InterviewSegment)
+    {
+     for (const key of interview?.InterviewSegment)
+   {
+    const videoKey = key?.videoKey || null;
+   const url = videoKey ? await getSignedUrlFromS3(videoKey) : null;
+    videoUrls.push(url)
+    }
+    }
 
   return {
     ...interview,
-    videoUrl,
+    videoUrls,
   };
 };
 
@@ -358,25 +455,27 @@ export const createOrgCandidate = async (
 
 
 
-export const createInterviewUpload = async(interviewId:string)=>{
-  const interview = await db.orm.public.Interview.where({
-    id:interviewId
+export const createInterviewUpload = async (interviewId: string,segmentId:string) => {
+  const segment = await db.orm.public.InterviewSegment.where({
+    id:segmentId,
+    interviewId
   }).first();
 
-  if(interview?.uploadId)
+  if(!segment)
   {
-    return interview?.uploadId;
+    throw new AppError("segment not found",401)
   }
-  const uploadId = await createMultipartUpload(interviewId);
-        await db.orm.public.Interview.where({
-          id:interviewId
-      }).update({
-        uploadId
-      });
+  const uploadId = await createMultipartUpload(segment?.videoKey);
+
+  await db.orm.public.InterviewSegment.where({
+    id:segmentId,
+    interviewId
+  }).update({
+    uploadId
+  });
 
   return uploadId;
-
-}
+};
 
 
 export const createUserInterviewMsg = async (
@@ -385,37 +484,43 @@ export const createUserInterviewMsg = async (
   userMsg: string,
   aiMsg: string,
 ) => {
-  const interviewFound = await redis.get(`interview:${interviewId}`);
+  const cacheKey = `interview:${interviewId}`;
 
-  if (!interviewFound) {
-    const interview = await db.orm.public.Interview.where({
+  let interview = await redis.get(cacheKey);
+
+  if (!interview) {
+    const interviewRecord = await db.orm.public.Interview.where({
       id: interviewId,
       createdBy: senderId,
     }).first();
 
-    if (!interview) {
+    if (!interviewRecord) {
       throw new AppError("interview not found", 404);
     }
-    await redis.set(
-      `interview:${interview?.id}`,
-      JSON.stringify({
-        slug: interview?.slug,
-        interviewId: interview?.id,
-      }),
-      "PX",
-      5 * 60 * 1000,
-    );
-  }
-  const interview = interviewFound && JSON.parse(interviewFound);
-  if (interview && interview?.interviewId !== interviewId) {
-    throw new AppError("interview id doesn't match", 403);
+
+    interview = JSON.stringify({
+      slug: interviewRecord.slug,
+      interviewId: interviewRecord.id,
+      createdBy: interviewRecord.createdBy,
+    });
+
+    await redis.set(cacheKey, interview, "PX", 5 * 60 * 1000);
   }
 
-  await db.orm.public.Message.create({
-    senderId: senderId,
+  const cachedInterview = JSON.parse(interview);
+
+  if (
+    cachedInterview.interviewId !== interviewId ||
+    cachedInterview.createdBy !== senderId
+  ) {
+    throw new AppError("unauthorized interview access", 403);
+  }
+
+  return db.orm.public.Message.create({
+    senderId,
     interviewId,
     userMsg,
-    aiMsg: aiMsg,
+    aiMsg,
   });
 };
 
@@ -426,37 +531,49 @@ export const createOrgInterviewMsg = async (
   aiMsg: string,
   organizationId: string,
 ) => {
-  const interviewFound = await redis.get(`interview:${interviewId}`);
+  const cacheKey = `interview:${organizationId}:${interviewId}`;
 
-  if (!interviewFound) {
+  let cachedInterview = await redis.get(cacheKey);
+
+  if (!cachedInterview) {
     const interview = await db.orm.public.Interview.where({
       id: interviewId,
-      slug: slug,
+      slug,
       tenantId: organizationId,
     }).first();
 
     if (!interview) {
       throw new AppError("interview not found", 404);
     }
+
+    cachedInterview = JSON.stringify({
+      interviewId: interview.id,
+      slug: interview.slug,
+      organizationId: interview.tenantId,
+    });
+
     await redis.set(
-      `interview:${interview?.id}`,
-      JSON.stringify({
-        slug: interview?.slug,
-        interviewId: interview?.id,
-      }),
+      cacheKey,
+      cachedInterview,
       "PX",
       5 * 60 * 1000,
     );
   }
-  const interview = interviewFound && JSON.parse(interviewFound);
-  if (interview && interview?.slug !== slug) {
-    throw new AppError("token does not match", 403);
+
+  const interview = JSON.parse(cachedInterview);
+
+  if (
+    interview.interviewId !== interviewId ||
+    interview.slug !== slug ||
+    interview.organizationId !== organizationId
+  ) {
+    throw new AppError("unauthorized interview access", 403);
   }
 
-  await db.orm.public.Message.create({
-    interviewId: interviewId,
+  return db.orm.public.Message.create({
+    interviewId,
     userMsg,
-    aiMsg: aiMsg,
-    organizationId: organizationId,
+    aiMsg,
+    organizationId,
   });
 };

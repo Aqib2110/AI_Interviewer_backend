@@ -70,7 +70,7 @@ export const createMultipartUpload = async (key: string) => {
 const { UploadId } = await s3Client.send(
   new CreateMultipartUploadCommand({
     Bucket: process.env.R2_BUCKET_NAME!,
-    Key: `interviews/${key}/recording.webm`,
+    Key: key,
     ContentType: "video/webm"
   })
 );
@@ -81,7 +81,7 @@ if (!UploadId) {
 
   console.log("Multipart upload initialized:", {
     bucket: process.env.R2_BUCKET_NAME,
-    Key: `interviews/${key}/recording.webm`,
+    Key: key,
     uploadId: UploadId,
   });
 
@@ -97,7 +97,7 @@ for (let i = 0; i < count; i++) {
 
   const command = new UploadPartCommand({
     Bucket: process.env.R2_BUCKET_NAME!,
-    Key: `interviews/${key}/recording.webm`,
+    Key: key,
     UploadId: uploadId,
     PartNumber: partNumber,
   });
@@ -130,7 +130,7 @@ export const getNextRecordingPartUrls = async (
     const result = await s3Client.send(
       new ListPartsCommand({
         Bucket: process.env.R2_BUCKET_NAME!,
-        Key: `interviews/${key}/recording.webm`,
+        Key: key,
         UploadId: uploadId,
         PartNumberMarker: partNumberMarker,
       })
@@ -164,7 +164,7 @@ export const getNextRecordingPartUrls = async (
         s3Client,
         new UploadPartCommand({
           Bucket: process.env.R2_BUCKET_NAME!,
-          Key: `interviews/${key}/recording.webm`,
+          Key: key,
           UploadId: uploadId,
           PartNumber: partNumber,
         }),
@@ -190,19 +190,18 @@ export const multiPartCompleted = async (
   key: string,
   uploadId: string
 ) => {
-  const videoKey = `interviews/${key}/recording.webm`;
   const Bucket = process.env.R2_BUCKET_NAME!;
 
   try {
     await s3Client.send(
       new HeadObjectCommand({
         Bucket,
-        Key: videoKey,
+        Key: key,
       })
     );
 
     return {
-      key: videoKey,
+      key: key,
       alreadyCompleted: true,
     };
   } catch (error: any) {
@@ -214,7 +213,7 @@ export const multiPartCompleted = async (
   const response = await s3Client.send(
     new ListPartsCommand({
       Bucket,
-      Key: videoKey,
+      Key: key,
       UploadId: uploadId,
     })
   );
@@ -234,7 +233,7 @@ export const multiPartCompleted = async (
   await s3Client.send(
     new CompleteMultipartUploadCommand({
       Bucket,
-      Key: videoKey,
+      Key: key,
       UploadId: uploadId,
       MultipartUpload: {
         Parts: parts,
@@ -243,7 +242,7 @@ export const multiPartCompleted = async (
   );
 
   return {
-    key: videoKey,
+    key: key,
     alreadyCompleted: false,
   };
 };

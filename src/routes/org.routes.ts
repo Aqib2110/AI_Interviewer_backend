@@ -8,9 +8,7 @@ import { authMiddlware } from "../middleware/auth.middleware.js";
 import {
   createOrganization,
   createOrgInvitation,
-  createOrgWorkspace,
   deleteOrgMemberRole,
-  getOrgWorkspaces,
   getOrgInvitations,
   getQueryData,
   orgInvitationAccept,
@@ -25,23 +23,6 @@ import {
 export const orgRouter = Router();
 
 orgRouter.post("/auth/organization/signup", createOrganization);
-
-orgRouter.post(
-  "/organization/workspace",
-  authMiddlware,
-  isolateTenant,
-  sessionContext,
-  authorize("ADMIN", "HR"),
-  createOrgWorkspace,
-);
-
-orgRouter.get(
-  "/organization/workspaces",
-  authMiddlware,
-  isolateTenant,
-  sessionContext,
-  getOrgWorkspaces,
-);
 
 orgRouter.post(
   "/organization/invitation",

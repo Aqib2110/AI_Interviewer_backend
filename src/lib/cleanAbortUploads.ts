@@ -32,9 +32,9 @@ async function cleanupIncompleteUploads(dryRun = true) {
       if (dryRun) continue;
 
       // Safety check: only target the recording key pattern.
-      if (!/^interviews\/[^/]+\/recording\.webm$/.test(upload.Key)) {
-        continue;
-      }
+     if (!/^interviews\/[^/]+\/[^/]+\/recording\.webm$/.test(upload.Key)) {
+  continue;
+}
 
       await s3Client.send(
         new AbortMultipartUploadCommand({

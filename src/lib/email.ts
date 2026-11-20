@@ -1,9 +1,7 @@
-// import { Resend } from 'resend';
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 dotenv.config();
 console.log(process.env.GMAIL_USER,"email");
-// const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const transporter = nodemailer.createTransport({
   service: "gmail",

@@ -2,8 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import {
   createUser as createUserService,
   uploadUserResume as uploadUserResumeService,
-  createUserWorkspace as createUserWorkspaceService,
-  getUserWorkspaces as getUserWorkspacesService,
   getDashboardData as getDashboardDataService,
   getUserResume as getUserResumeService,
   switchContext as switchContextService,
@@ -69,26 +67,6 @@ export const uploadUserResume = async (
   }
 };
 
-export const createUserWorkspace = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  const { name } = req.body;
-  try {
-    if (!name) {
-      throw new AppError("name is required", 401);
-    }
-
-    await createUserWorkspaceService(name, (req as any).user.id);
-
-    return res.status(200).json({
-      message: "organization created successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 
 export const getUserOrganizations = async (
@@ -107,21 +85,7 @@ export const getUserOrganizations = async (
   }
 };
 
-export const getUserWorkspaces = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const subOrgs = getUserWorkspacesService((req as any).user.id);
 
-    return res.status(200).json({
-      subOrgs,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 
 export const getDashboardData = async(req: Request,
