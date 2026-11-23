@@ -173,6 +173,7 @@ model Interview {
   skills        String[]?
   startedAt     DateTime?
   endedAt       DateTime?
+  expiresAt     DateTime?
   tenantId      String?
   createdAt     DateTime  @default(now())
   interviewcandidate   Candidate?
@@ -185,11 +186,14 @@ model Interview {
 }
 
 model InterviewSegment {
-  id          String   @id @default(uuid())
-  interviewId String
-  videoKey    String   @unique
-  uploadId    String?
-  createdAt   DateTime @default(now())
+  id            String   @id @default(uuid())
+  interviewId   String
+  videoKey      String   @unique
+  uploadId      String?
+  recordingMode String?
+  mimeType      String?
+  deviceType    String?
+  createdAt     DateTime @default(now())
   interview Interview @relation(fields: [interviewId], references: [id])
 }
 
@@ -199,8 +203,12 @@ model Message {
   aiMsg          String
   senderId       Int?
   organizationId String?
+  askedAt        DateTime
+  askedAtMs      Int
+  segmentId      String
   interviewId    String    
   createdAt      DateTime  @default(now())
+  InterviewSegment  InterviewSegment @relation(fields:[segmentId],references:[id])
   sender         User? @relation(fields: [senderId], references: [id])
   organization   Organization? @relation(fields: [organizationId], references: [id])
   interview      Interview @relation(

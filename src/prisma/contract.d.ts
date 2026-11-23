@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'b99805c3a42bb41d7d7c72251d1187438a547a6256fc63f7872801003cb03f90'>;
+  StorageHashBase<'b90d68910981e23dcb2e640738f010bdc5e68ed25f601af153a76733867e6d1b'>;
 export type ExecutionHash =
   ExecutionHashBase<'526fa49dc2f03c7747139b01183ec32e2c26b17269281feded45ab7ce900ee1c'>;
 export type ProfileHash =
@@ -272,6 +272,7 @@ export type FieldOutputTypes = {
       readonly description: CodecTypes['pg/text@1']['output'];
       readonly durationMinutes: CodecTypes['pg/int4@1']['output'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly role: CodecTypes['pg/text@1']['output'];
       readonly score: CodecTypes['pg/int4@1']['output'] | null;
@@ -285,8 +286,11 @@ export type FieldOutputTypes = {
     };
     readonly InterviewSegment: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly deviceType: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly interviewId: CodecTypes['pg/text@1']['output'];
+      readonly mimeType: CodecTypes['pg/text@1']['output'] | null;
+      readonly recordingMode: CodecTypes['pg/text@1']['output'] | null;
       readonly uploadId: CodecTypes['pg/text@1']['output'] | null;
       readonly videoKey: CodecTypes['pg/text@1']['output'];
     };
@@ -299,10 +303,13 @@ export type FieldOutputTypes = {
     };
     readonly Message: {
       readonly aiMsg: CodecTypes['pg/text@1']['output'];
+      readonly askedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly askedAtMs: CodecTypes['pg/int4@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly interviewId: CodecTypes['pg/text@1']['output'];
       readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
+      readonly segmentId: CodecTypes['pg/text@1']['output'];
       readonly senderId: CodecTypes['pg/int4@1']['output'] | null;
       readonly userMsg: CodecTypes['pg/text@1']['output'];
     };
@@ -399,6 +406,7 @@ export type FieldInputTypes = {
       readonly description: CodecTypes['pg/text@1']['input'];
       readonly durationMinutes: CodecTypes['pg/int4@1']['input'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly role: CodecTypes['pg/text@1']['input'];
       readonly score: CodecTypes['pg/int4@1']['input'] | null;
@@ -412,8 +420,11 @@ export type FieldInputTypes = {
     };
     readonly InterviewSegment: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly deviceType: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly interviewId: CodecTypes['pg/text@1']['input'];
+      readonly mimeType: CodecTypes['pg/text@1']['input'] | null;
+      readonly recordingMode: CodecTypes['pg/text@1']['input'] | null;
       readonly uploadId: CodecTypes['pg/text@1']['input'] | null;
       readonly videoKey: CodecTypes['pg/text@1']['input'];
     };
@@ -426,10 +437,13 @@ export type FieldInputTypes = {
     };
     readonly Message: {
       readonly aiMsg: CodecTypes['pg/text@1']['input'];
+      readonly askedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly askedAtMs: CodecTypes['pg/int4@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly interviewId: CodecTypes['pg/text@1']['input'];
       readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
+      readonly segmentId: CodecTypes['pg/text@1']['input'];
       readonly senderId: CodecTypes['pg/int4@1']['input'] | null;
       readonly userMsg: CodecTypes['pg/text@1']['input'];
     };
@@ -526,6 +540,7 @@ export type StorageColumnTypes = {
       readonly description: CodecTypes['pg/text@1']['output'];
       readonly durationMinutes: CodecTypes['pg/int4@1']['output'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly role: CodecTypes['pg/text@1']['output'];
       readonly score: CodecTypes['pg/int4@1']['output'] | null;
@@ -539,8 +554,11 @@ export type StorageColumnTypes = {
     };
     readonly InterviewSegment: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly deviceType: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly interviewId: CodecTypes['pg/text@1']['output'];
+      readonly mimeType: CodecTypes['pg/text@1']['output'] | null;
+      readonly recordingMode: CodecTypes['pg/text@1']['output'] | null;
       readonly uploadId: CodecTypes['pg/text@1']['output'] | null;
       readonly videoKey: CodecTypes['pg/text@1']['output'];
     };
@@ -553,10 +571,13 @@ export type StorageColumnTypes = {
     };
     readonly Message: {
       readonly aiMsg: CodecTypes['pg/text@1']['output'];
+      readonly askedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+      readonly askedAtMs: CodecTypes['pg/int4@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly interviewId: CodecTypes['pg/text@1']['output'];
       readonly organizationId: CodecTypes['pg/text@1']['output'] | null;
+      readonly segmentId: CodecTypes['pg/text@1']['output'];
       readonly senderId: CodecTypes['pg/int4@1']['output'] | null;
       readonly userMsg: CodecTypes['pg/text@1']['output'];
     };
@@ -653,6 +674,7 @@ export type StorageColumnInputTypes = {
       readonly description: CodecTypes['pg/text@1']['input'];
       readonly durationMinutes: CodecTypes['pg/int4@1']['input'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly role: CodecTypes['pg/text@1']['input'];
       readonly score: CodecTypes['pg/int4@1']['input'] | null;
@@ -666,8 +688,11 @@ export type StorageColumnInputTypes = {
     };
     readonly InterviewSegment: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly deviceType: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly interviewId: CodecTypes['pg/text@1']['input'];
+      readonly mimeType: CodecTypes['pg/text@1']['input'] | null;
+      readonly recordingMode: CodecTypes['pg/text@1']['input'] | null;
       readonly uploadId: CodecTypes['pg/text@1']['input'] | null;
       readonly videoKey: CodecTypes['pg/text@1']['input'];
     };
@@ -680,10 +705,13 @@ export type StorageColumnInputTypes = {
     };
     readonly Message: {
       readonly aiMsg: CodecTypes['pg/text@1']['input'];
+      readonly askedAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
+      readonly askedAtMs: CodecTypes['pg/int4@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly interviewId: CodecTypes['pg/text@1']['input'];
       readonly organizationId: CodecTypes['pg/text@1']['input'] | null;
+      readonly segmentId: CodecTypes['pg/text@1']['input'];
       readonly senderId: CodecTypes['pg/int4@1']['input'] | null;
       readonly userMsg: CodecTypes['pg/text@1']['input'];
     };
@@ -783,6 +811,7 @@ export namespace Models {
     description: CodecTypes['pg/text@1']['output'];
     durationMinutes: CodecTypes['pg/int4@1']['output'];
     endedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+    expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
     id: CodecTypes['pg/text@1']['output'];
     role: CodecTypes['pg/text@1']['output'];
     score: CodecTypes['pg/int4@1']['output'] | null;
@@ -811,8 +840,11 @@ export namespace Models {
   };
   export type public_InterviewSegment = {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    deviceType: CodecTypes['pg/text@1']['output'] | null;
     id: CodecTypes['pg/text@1']['output'];
     interviewId: CodecTypes['pg/text@1']['output'];
+    mimeType: CodecTypes['pg/text@1']['output'] | null;
+    recordingMode: CodecTypes['pg/text@1']['output'] | null;
     uploadId: CodecTypes['pg/text@1']['output'] | null;
     videoKey: CodecTypes['pg/text@1']['output'];
     interview: public_Interview;
@@ -830,16 +862,20 @@ export namespace Models {
   };
   export type public_Message = {
     aiMsg: CodecTypes['pg/text@1']['output'];
+    askedAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
+    askedAtMs: CodecTypes['pg/int4@1']['output'];
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
     id: CodecTypes['pg/text@1']['output'];
     interviewId: CodecTypes['pg/text@1']['output'];
     organizationId: CodecTypes['pg/text@1']['output'] | null;
+    segmentId: CodecTypes['pg/text@1']['output'];
     senderId: CodecTypes['pg/int4@1']['output'] | null;
     userMsg: CodecTypes['pg/text@1']['output'];
+    InterviewSegment: public_InterviewSegment;
     interview: public_Interview;
     organization: public_Organization | null;
     sender: public_User | null;
-    readonly [RelationKeys]?: 'interview' | 'organization' | 'sender';
+    readonly [RelationKeys]?: 'InterviewSegment' | 'interview' | 'organization' | 'sender';
   };
   export type public_Notification = {
     actorId: CodecTypes['pg/int4@1']['output'] | null;
@@ -1137,6 +1173,11 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-temporal@1';
                   readonly nullable: true;
                 };
+                readonly expiresAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: true;
+                };
                 readonly id: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -1258,6 +1299,11 @@ type ContractBase = Omit<
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
                 };
+                readonly deviceType: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
                 readonly id: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -1267,6 +1313,16 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
+                };
+                readonly mimeType: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly recordingMode: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
                 };
                 readonly uploadId: {
                   readonly nativeType: 'text';
@@ -1384,6 +1440,16 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
+                readonly askedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                };
+                readonly askedAtMs: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
                 readonly createdAt: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-temporal@1';
@@ -1404,6 +1470,11 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
+                };
+                readonly segmentId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
                 };
                 readonly senderId: {
                   readonly nativeType: 'int4';
@@ -1432,6 +1503,12 @@ type ContractBase = Omit<
                   readonly unique: false;
                 },
                 {
+                  readonly name: 'Message_segmentId_idx_4e8c51ae';
+                  readonly prefix: 'Message_segmentId_idx';
+                  readonly columns: readonly ['segmentId'];
+                  readonly unique: false;
+                },
+                {
                   readonly name: 'Message_senderId_idx_4689c490';
                   readonly prefix: 'Message_senderId_idx';
                   readonly columns: readonly ['senderId'];
@@ -1439,6 +1516,18 @@ type ContractBase = Omit<
                 },
               ];
               foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Message';
+                    readonly columns: readonly ['segmentId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'InterviewSegment';
+                    readonly columns: readonly ['id'];
+                  };
+                },
                 {
                   readonly source: {
                     readonly namespaceId: 'public' & NamespaceId;
@@ -2272,6 +2361,13 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-temporal@1';
                 };
               };
+              readonly expiresAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -2412,6 +2508,7 @@ type ContractBase = Omit<
                 readonly description: { readonly column: 'description' };
                 readonly durationMinutes: { readonly column: 'durationMinutes' };
                 readonly endedAt: { readonly column: 'endedAt' };
+                readonly expiresAt: { readonly column: 'expiresAt' };
                 readonly id: { readonly column: 'id' };
                 readonly role: { readonly column: 'role' };
                 readonly score: { readonly column: 'score' };
@@ -2434,12 +2531,24 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-temporal@1';
                 };
               };
+              readonly deviceType: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly interviewId: {
                 readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly mimeType: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly recordingMode: {
+                readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly uploadId: {
@@ -2470,8 +2579,11 @@ type ContractBase = Omit<
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly createdAt: { readonly column: 'createdAt' };
+                readonly deviceType: { readonly column: 'deviceType' };
                 readonly id: { readonly column: 'id' };
                 readonly interviewId: { readonly column: 'interviewId' };
+                readonly mimeType: { readonly column: 'mimeType' };
+                readonly recordingMode: { readonly column: 'recordingMode' };
                 readonly uploadId: { readonly column: 'uploadId' };
                 readonly videoKey: { readonly column: 'videoKey' };
               };
@@ -2548,6 +2660,17 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly askedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly askedAtMs: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly createdAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -2567,6 +2690,10 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly segmentId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly senderId: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
@@ -2577,6 +2704,18 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly InterviewSegment: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'InterviewSegment';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['segmentId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
               readonly interview: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -2616,10 +2755,13 @@ type ContractBase = Omit<
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly aiMsg: { readonly column: 'aiMsg' };
+                readonly askedAt: { readonly column: 'askedAt' };
+                readonly askedAtMs: { readonly column: 'askedAtMs' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly id: { readonly column: 'id' };
                 readonly interviewId: { readonly column: 'interviewId' };
                 readonly organizationId: { readonly column: 'organizationId' };
+                readonly segmentId: { readonly column: 'segmentId' };
                 readonly senderId: { readonly column: 'senderId' };
                 readonly userMsg: { readonly column: 'userMsg' };
               };

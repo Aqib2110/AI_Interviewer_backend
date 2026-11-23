@@ -5,12 +5,12 @@ import { randomBytes } from "crypto";
 import redis from "../lib/redis.js";
 import { geminiLiveSession } from "../lib/gemini.js";
 import { getSignedUrlFromS3, multiPartCompleted } from "../lib/s3.js";
-import { or,and } from "@prisma/orm-postgres/orm-client";
+import { or, and } from "@prisma/orm-postgres/orm-client";
 import { createMultipartUpload } from "../lib/s3.js";
 import { interviewRemainingTime } from "../lib/Time.js";
 import { randomUUID } from "node:crypto";
 
-export const createOrgInterviewSession = async (slug: string) => {
+export const createOrgInterviewSession = async (slug: string, recordingMode: string, mimeType: string, deviceType: string) => {
   const candidateInterview = await db.orm.public.Interview
     .where({ slug })
     .include("user")
@@ -27,134 +27,146 @@ export const createOrgInterviewSession = async (slug: string) => {
   if (candidateInterview.status === "COMPELETED") {
     throw new AppError("interview is already done", 403);
   }
-  
-if(candidateInterview.status === "PENDING")
-{
-    const now = Temporal.Now.instant();
-    await db.transaction(async (tx: any) => {
-    const interview = await tx.orm.public.Interview
-      .where({
-        id: candidateInterview.id,
-        startedAt: null,
-        status: "PENDING",
-      })
-      .update({
-        status: "IN_PROGRESS",
-        startedAt: now
-      });
 
-       if (!interview) {
-      throw new AppError("interview is already in progress", 409);
-    }
-     
-    await tx.orm.public.Notification.create({
-      tenantId: candidateInterview.tenantId,
-      actorId: candidateInterview.user.id,
-      targetUserId: interview.candidateId,
-      type: "INTERVIEW_STARTED",
-      message: `${candidateInterview.candidateEmail} has started the interview.`,
+  if (
+  candidateInterview.expiresAt &&
+  Date.now() >= candidateInterview.expiresAt.epochMilliseconds
+) {
+  throw new AppError("interview has expired", 403);
+}
+
+  if (candidateInterview.status === "PENDING") {
+    const now = Temporal.Now.instant();
+    const durationMinutes = candidateInterview.durationMinutes || 8;
+    const expiresAt = now.add({ seconds: Math.round(durationMinutes * 60) });
+
+    await db.transaction(async (tx: any) => {
+      const interview = await tx.orm.public.Interview
+        .where({
+          id: candidateInterview.id,
+          startedAt: null,
+          status: "PENDING",
+        })
+        .update({
+          status: "IN_PROGRESS",
+          startedAt: now,
+          expiresAt
+        });
+
+      if (!interview) {
+        throw new AppError("interview is already in progress", 409);
+      }
+
+      await tx.orm.public.Notification.create({
+        tenantId: candidateInterview.tenantId,
+        actorId: candidateInterview.user.id,
+        targetUserId: interview.candidateId,
+        type: "INTERVIEW_STARTED",
+        message: `${candidateInterview.candidateEmail} has started the interview.`,
+      });
     });
-  });
 
     const id = randomUUID();
 
 
-    const job =  await InterviewQueue.add(
-    "expire_interview",
-    {
-      interviewId: candidateInterview.id,
-    },
-    {
-      jobId: `expire_interview_${id}_${candidateInterview.id}`,
-      delay: 4 * 60 * 1000,
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 2000,
+    const job = await InterviewQueue.add(
+      "expire_interview",
+      {
+        interviewId: candidateInterview.id,
       },
-      removeOnComplete: {
-        age: 60 * 60 * 24,
-        count: 1000,
-      },
-      removeOnFail: {
-        age: 60 * 60 * 24 * 7,
-      },
-    }
+      {
+        jobId: `expire_interview_${id}_${candidateInterview.id}`,
+        delay: 4 * 60 * 1000,
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 2000,
+        },
+        removeOnComplete: {
+          age: 60 * 60 * 24,
+          count: 1000,
+        },
+        removeOnFail: {
+          age: 60 * 60 * 24 * 7,
+        },
+      }
     );
-
-
-  console.log("JOB CREATED:", {
-  id: job.id,
-  name: job.name,
-  delay: job.opts.delay,
-  timestamp: job.timestamp,
-  processedOn: job.processedOn,
-});
-
-console.log("JOB STATE:", await job.getState());
-
-}
-
- const sessionResumptionHandle =
-    candidateInterview.sessionResumptionHandle ?? null;
-const remTime = candidateInterview.startedAt ? interviewRemainingTime(candidateInterview) : null;
-
-
-  const id = randomUUID();
-  const videoKey = `interviews/${candidateInterview?.id}/${id}/recording.webm`;
-
- const segment = await db.orm.public.InterviewSegment.create({
-    interviewId: candidateInterview.id,
-    videoKey
+    console.log("JOB CREATED:", {
+      id: job.id,
+      name: job.name,
+      delay: job.opts.delay,
+      timestamp: job.timestamp,
+      processedOn: job.processedOn,
     });
+    console.log("JOB STATE:", await job.getState());
 
+  }
 
-   const token = await geminiLiveSession(
+  const sessionResumptionHandle =
+    candidateInterview.sessionResumptionHandle ?? null;
+  const remTime = candidateInterview.startedAt ? interviewRemainingTime(candidateInterview) : null;
+
+  const token = await geminiLiveSession(
     candidateInterview?.description,
     candidateInterview?.skills,
     candidateInterview?.durationMinutes,
     remTime
   );
 
- const elapsedSeconds = candidateInterview.startedAt
-  ? Math.max(
+  const id = randomUUID();
+  const videoKey = `interviews/${candidateInterview?.id}/${id}/recording.webm`;
+
+  const segment = await db.orm.public.InterviewSegment.create({
+    interviewId: candidateInterview.id,
+    videoKey,
+    recordingMode,
+    mimeType,
+    deviceType
+  });
+
+  const elapsedSeconds = candidateInterview.startedAt
+    ? Math.max(
       0,
       Math.floor(
         (Date.now() - candidateInterview.startedAt.epochMilliseconds) / 1000
       )
     )
-  : null;
+    : null;
 
-   return {token,sessionResumptionHandle,elapsedSeconds,segmentId:segment.id};
+  const interview_duration = candidateInterview?.durationMinutes || 8;
+
+  return { token, sessionResumptionHandle, elapsedSeconds, segmentId: segment.id, interview_duration };
 
 };
 
 
-export const interviewSegmentComplete = async(uploadId:string,segmentId:string)=>{
-const interviewSegment = await db.orm.public.InterviewSegment.where({
-  id:segmentId,
-  uploadId
-}).first();
-if(!interviewSegment)
-{
-  throw new AppError("interview segment not found",403)
-}
-const videoKey = interviewSegment?.videoKey;
-await multiPartCompleted(videoKey,uploadId);
+export const interviewSegmentComplete = async (uploadId: string, segmentId: string) => {
+  const interviewSegment = await db.orm.public.InterviewSegment.where({
+    id: segmentId,
+    uploadId
+  }).first();
+  if (!interviewSegment) {
+    throw new AppError("interview segment not found", 403)
+  }
+  const videoKey = interviewSegment?.videoKey;
+  await multiPartCompleted(videoKey, uploadId);
 }
 
 
-export const createSessionResumptionUpdate = async(handle:string,interviewId:string)=>{
-return await db.orm.public.Interview.where({
-  id:interviewId
-}).update({
-  sessionResumptionHandle:handle
-});
+export const createSessionResumptionUpdate = async (handle: string, interviewId: string) => {
+  return await db.orm.public.Interview.where({
+    id: interviewId
+  }).update({
+    sessionResumptionHandle: handle
+  });
 }
 
 export const createUserInterviewSession = async (
   slug: string,
   userId: number,
+  recordingMode: string,
+  mimeType: string,
+  deviceType: string
 ) => {
   const candidateInterview = await db.orm.public.Interview.where({
     slug: slug,
@@ -172,49 +184,58 @@ export const createUserInterviewSession = async (
   if (candidateInterview.status === "COMPELETED") {
     throw new AppError("interview is already done", 403);
   }
+  
+   if (
+  candidateInterview.expiresAt &&
+  Date.now() >= candidateInterview.expiresAt.epochMilliseconds
+) {
+  throw new AppError("interview has expired", 403);
+}
 
 
 
- 
- if(candidateInterview.status === "PENDING")
- {
- const interview = await db.orm.public.Interview.where({
-    id: candidateInterview.id,
-    status:"PENDING",
-    startedAt:null
-  }).update({
-    status: "IN_PROGRESS",
-    startedAt: Temporal.Now.instant()
-  });
 
-  if(!interview)
-  {
-    throw new AppError("interview is already in progress",409)
-  }
+  if (candidateInterview.status === "PENDING") {
+     const now = Temporal.Now.instant();
+    const durationMinutes = candidateInterview.durationMinutes || 8;
+    const expiresAt = now.add({ seconds: Math.round(durationMinutes * 60) });
+    const interview = await db.orm.public.Interview.where({
+      id: candidateInterview.id,
+      status: "PENDING",
+      startedAt: null
+    }).update({
+      status: "IN_PROGRESS",
+      startedAt: Temporal.Now.instant(),
+      expiresAt
+    });
 
-  await InterviewQueue.add(
-    "expire_interview",
-    {
-      interviewId: candidateInterview.id,
-    },
-    {
-      jobId: `expire_interview_${candidateInterview.id}`,
-      delay: (candidateInterview.durationMinutes + 2) * 60 * 1000,
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 2000,
-      },
-      removeOnComplete: {
-        age: 60 * 60 * 24,
-        count: 1000,
-      },
-      removeOnFail: {
-        age: 60 * 60 * 24 * 7,
-      },
+    if (!interview) {
+      throw new AppError("interview is already in progress", 409)
     }
-  );
- }
+
+    await InterviewQueue.add(
+      "expire_interview",
+      {
+        interviewId: candidateInterview.id,
+      },
+      {
+        jobId: `expire_interview_${candidateInterview.id}`,
+        delay: (candidateInterview.durationMinutes + 2) * 60 * 1000,
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 2000,
+        },
+        removeOnComplete: {
+          age: 60 * 60 * 24,
+          count: 1000,
+        },
+        removeOnFail: {
+          age: 60 * 60 * 24 * 7,
+        },
+      }
+    );
+  }
 
   const sessionResumptionHandle =
     candidateInterview.sessionResumptionHandle ?? null;
@@ -223,28 +244,33 @@ export const createUserInterviewSession = async (
   const id = randomUUID();
   const videoKey = `interviews/${candidateInterview?.id}/${id}/recording.webm`;
 
- const segment = await db.orm.public.InterviewSegment.create({
-    interviewId: candidateInterview.id,
-    videoKey
-  });
-
-    const token = await geminiLiveSession(
+  const token = await geminiLiveSession(
     candidateInterview?.description,
     candidateInterview?.skills,
     candidateInterview?.durationMinutes,
     remTime
   );
 
- const elapsedSeconds = candidateInterview.startedAt
-  ? Math.max(
+
+    const segment = await db.orm.public.InterviewSegment.create({
+    interviewId: candidateInterview.id,
+    videoKey,
+    recordingMode,
+    mimeType,
+    deviceType
+  });
+
+  const elapsedSeconds = candidateInterview.startedAt
+    ? Math.max(
       0,
       Math.floor(
         (Date.now() - candidateInterview.startedAt.epochMilliseconds) / 1000
       )
     )
-  : null;
+    : null;
+  const interview_duration = candidateInterview?.durationMinutes || 8;
 
-  return {token,sessionResumptionHandle,elapsedSeconds,segmentId:segment.id};
+  return { token, sessionResumptionHandle, elapsedSeconds, segmentId: segment.id, interview_duration };
 };
 
 export const createOrgInterview = async (
@@ -275,7 +301,7 @@ export const createOrgInterview = async (
     });
 
     await tx.orm.public.Notification.create({
-      actorId:userId,
+      actorId: userId,
       tenantId: orgId,
       type: "INTERVIEW",
       message: `Interview created for ${email} by ${userId}`,
@@ -324,16 +350,14 @@ export const getOrgInterviewDetails = async (
     throw new AppError("Interview not found", 404);
   }
 
-    let videoUrls = [];
-    if(interview?.InterviewSegment)
-    {
-     for (const key of interview?.InterviewSegment)
-    {
-    const videoKey = key?.videoKey || null;
-   const url = videoKey ? await getSignedUrlFromS3(videoKey) : null;
-    videoUrls.push(url)
+  let videoUrls = [];
+  if (interview?.InterviewSegment) {
+    for (const key of interview?.InterviewSegment) {
+      const videoKey = key?.videoKey || null;
+      const url = videoKey ? await getSignedUrlFromS3(videoKey) : null;
+      videoUrls.push(url)
     }
-    }
+  }
 
   return {
     ...interview,
@@ -372,42 +396,40 @@ export const createUserInterview = async (
 
 export const getUserInterviews = async (userId: number) => {
   return await db.orm.public.Interview.where((i) =>
-      or(
-        i.candidateId.eq(userId),
-        i.createdBy.eq(userId)
-      )
+    or(
+      i.candidateId.eq(userId),
+      i.createdBy.eq(userId)
     )
+  )
     .select("title", "slug", "candidateEmail", "createdAt", "status")
     .all();
 };
 
 export const getUserInterviewDetails = async (userId: number, slug: string) => {
   console.log(userId, slug, "info");
- const interview = await db.orm.public.Interview
-  .where((i) =>
-    and(
-      i.slug.eq(slug),
-      or(
-        i.candidateId.eq(userId),
-        i.createdBy.eq(userId)
+  const interview = await db.orm.public.Interview
+    .where((i) =>
+      and(
+        i.slug.eq(slug),
+        or(
+          i.candidateId.eq(userId),
+          i.createdBy.eq(userId)
+        )
       )
     )
-  )
-  .include("InterviewSegment")
+    .include("InterviewSegment")
     .include("Message")
     .include("Report")
     .first();
 
-    let videoUrls = [];
-    if(interview?.InterviewSegment)
-    {
-     for (const key of interview?.InterviewSegment)
-   {
-    const videoKey = key?.videoKey || null;
-   const url = videoKey ? await getSignedUrlFromS3(videoKey) : null;
-    videoUrls.push(url)
+  let videoUrls = [];
+  if (interview?.InterviewSegment) {
+    for (const key of interview?.InterviewSegment) {
+      const videoKey = key?.videoKey || null;
+      const url = videoKey ? await getSignedUrlFromS3(videoKey) : null;
+      videoUrls.push(url)
     }
-    }
+  }
 
   return {
     ...interview,
@@ -455,20 +477,19 @@ export const createOrgCandidate = async (
 
 
 
-export const createInterviewUpload = async (interviewId: string,segmentId:string) => {
+export const createInterviewUpload = async (interviewId: string, segmentId: string) => {
   const segment = await db.orm.public.InterviewSegment.where({
-    id:segmentId,
+    id: segmentId,
     interviewId
   }).first();
 
-  if(!segment)
-  {
-    throw new AppError("segment not found",401)
+  if (!segment) {
+    throw new AppError("segment not found", 401)
   }
   const uploadId = await createMultipartUpload(segment?.videoKey);
 
   await db.orm.public.InterviewSegment.where({
-    id:segmentId,
+    id: segmentId,
     interviewId
   }).update({
     uploadId
@@ -483,6 +504,9 @@ export const createUserInterviewMsg = async (
   interviewId: string,
   userMsg: string,
   aiMsg: string,
+  askedAt: Date,
+  segmentId: string,
+  askedAtMs: number
 ) => {
   const cacheKey = `interview:${interviewId}`;
 
@@ -521,6 +545,9 @@ export const createUserInterviewMsg = async (
     interviewId,
     userMsg,
     aiMsg,
+    askedAt: Temporal.Instant.from(askedAt),
+    askedAtMs,
+    segmentId
   });
 };
 
@@ -530,6 +557,9 @@ export const createOrgInterviewMsg = async (
   userMsg: string,
   aiMsg: string,
   organizationId: string,
+  askedAt: Date,
+  segmentId: string,
+  askedAtMs: number
 ) => {
   const cacheKey = `interview:${organizationId}:${interviewId}`;
 
@@ -575,5 +605,8 @@ export const createOrgInterviewMsg = async (
     userMsg,
     aiMsg,
     organizationId,
+    askedAt: Temporal.Instant.from(askedAt),
+    askedAtMs,
+    segmentId
   });
 };

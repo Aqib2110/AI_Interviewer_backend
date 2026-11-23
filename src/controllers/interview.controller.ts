@@ -30,15 +30,15 @@ export const createOrgInterviewSession = async (
   next: NextFunction,
 ) => {
   try {
-    const slug = req.body.slug;
+    const {slug,recordingMode,mimeType,deviceType} = req.body;
 
-    if (!slug) {
+    if (!slug || !recordingMode || !mimeType || !deviceType) {
       return res.status(401).json({
-        message: "interview slug is required",
+        message: "interview slug,recording,mime and device type is required",
       });
     }
 
-    const session = await createOrgInterviewSessionService(slug);
+    const session = await createOrgInterviewSessionService(slug,recordingMode,mimeType,deviceType);
 
     res.status(200).json({
       ...session,
@@ -70,15 +70,15 @@ export const createUserInterviewSession = async (
   next: NextFunction,
 ) => {
   try {
-    const slug = req.body.slug;
+    const {slug,recordingMode,mimeType,deviceType} = req.body;
 
-    if (!slug) {
+    if (!slug || !recordingMode || !mimeType || !deviceType) {
       return res.status(401).json({
-        message: "interviewId is required",
+        message: "interview slug,recording,mime and device type is required",
       });
     }
 
-    const session = createUserInterviewSessionService(slug, (req as any).user.id);
+    const session = await createUserInterviewSessionService(slug,(req as any)?.user?.id,recordingMode,mimeType,deviceType);
 
     res.status(200).json({
       ...session
@@ -258,9 +258,9 @@ export const createUserInterviewMsg = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { interviewId, userMsg, aiMsg } = req.body;
+  const { interviewId, userMsg, aiMsg,askedAt,segmentId,askedAtMs } = req.body;
 
-  if (!interviewId || !userMsg || !aiMsg) {
+  if (!interviewId || !userMsg || !aiMsg || !askedAt || !segmentId || !askedAtMs) {
     return res.status(400).json({
       message: "interviewId and content and messages are required",
     });
@@ -272,6 +272,9 @@ export const createUserInterviewMsg = async (
       interviewId,
       userMsg,
       aiMsg,
+      askedAt,
+      segmentId,
+      askedAtMs
     );
 
     return res.status(200).json({
@@ -287,9 +290,9 @@ export const createOrgInterviewMsg = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { organizationId, userMsg, aiMsg, interviewId, slug } = req.body;
+  const { organizationId, userMsg, aiMsg, interviewId, slug,askedAt,segmentId,askedAtMs } = req.body;
 
-  if (!interviewId || !userMsg || !aiMsg || !organizationId || !slug) {
+  if (!interviewId || !userMsg || !aiMsg || !organizationId || !slug || !askedAt || !segmentId || !askedAtMs) {
     return res.status(400).json({
       message: "interviewId, organizationId,role and  are messages required",
     });
@@ -302,6 +305,9 @@ export const createOrgInterviewMsg = async (
       userMsg,
       aiMsg,
       organizationId,
+      askedAt,
+      segmentId,
+      askedAtMs
     );
     return res.status(200).json({
       message: "message created successfully",
