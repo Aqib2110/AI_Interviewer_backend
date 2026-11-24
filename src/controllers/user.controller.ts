@@ -282,7 +282,7 @@ try {
   const tenantId = (req as any).user.tenantId;
   const userId = (req as any).user.id;
 
-const notifications = await getUserNotificationsService(tenantId,userId);
+const notifications = await getUserNotificationsService(userId,tenantId);
 
 res.status(200).json({
   notifications

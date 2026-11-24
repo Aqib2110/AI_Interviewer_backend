@@ -94,16 +94,13 @@ model Membership {
 
 model Notification {
   id           String   @id @default(uuid())
-  tenantId     String
+  tenantId     String?
   actorId      Int?
   targetUserId Int?
   type         String
   message      String
-  entityId     String?
   createdAt    DateTime @default(now())
-
-  tenant Organization @relation(fields: [tenantId], references: [id])
-
+  tenant Organization? @relation(fields: [tenantId], references: [id])
   actor User? @relation(
     "NotificationActor",
     fields: [actorId],

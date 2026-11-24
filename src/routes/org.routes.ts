@@ -19,6 +19,7 @@ import {
   resendOrgInvitation,
   getOrgMembers
 } from "../controllers/org.controller.js";
+import { getUserNotifications } from "../controllers/user.controller.js";
 
 export const orgRouter = Router();
 
@@ -73,6 +74,14 @@ orgRouter.get(
   sessionContext,
   authorize("ADMIN","HR"),
   getOrgMembers,
+);
+
+orgRouter.get(
+  "/organization/notifications",
+  authMiddlware,
+  isolateTenant,
+  sessionContext,
+  getUserNotifications,
 );
 
 orgRouter.get(

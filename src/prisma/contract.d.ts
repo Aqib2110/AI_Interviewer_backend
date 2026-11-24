@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'b90d68910981e23dcb2e640738f010bdc5e68ed25f601af153a76733867e6d1b'>;
+  StorageHashBase<'4be496c85d9abb70261cd6bbaff9a777564a53f9085eab024f38b828a8eea17d'>;
 export type ExecutionHash =
   ExecutionHashBase<'526fa49dc2f03c7747139b01183ec32e2c26b17269281feded45ab7ce900ee1c'>;
 export type ProfileHash =
@@ -316,11 +316,10 @@ export type FieldOutputTypes = {
     readonly Notification: {
       readonly actorId: CodecTypes['pg/int4@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
-      readonly entityId: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly message: CodecTypes['pg/text@1']['output'];
       readonly targetUserId: CodecTypes['pg/int4@1']['output'] | null;
-      readonly tenantId: CodecTypes['pg/text@1']['output'];
+      readonly tenantId: CodecTypes['pg/text@1']['output'] | null;
       readonly type: CodecTypes['pg/text@1']['output'];
     };
     readonly NotificationRead: {
@@ -450,11 +449,10 @@ export type FieldInputTypes = {
     readonly Notification: {
       readonly actorId: CodecTypes['pg/int4@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
-      readonly entityId: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly message: CodecTypes['pg/text@1']['input'];
       readonly targetUserId: CodecTypes['pg/int4@1']['input'] | null;
-      readonly tenantId: CodecTypes['pg/text@1']['input'];
+      readonly tenantId: CodecTypes['pg/text@1']['input'] | null;
       readonly type: CodecTypes['pg/text@1']['input'];
     };
     readonly NotificationRead: {
@@ -584,11 +582,10 @@ export type StorageColumnTypes = {
     readonly Notification: {
       readonly actorId: CodecTypes['pg/int4@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
-      readonly entityId: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly message: CodecTypes['pg/text@1']['output'];
       readonly targetUserId: CodecTypes['pg/int4@1']['output'] | null;
-      readonly tenantId: CodecTypes['pg/text@1']['output'];
+      readonly tenantId: CodecTypes['pg/text@1']['output'] | null;
       readonly type: CodecTypes['pg/text@1']['output'];
     };
     readonly NotificationRead: {
@@ -718,11 +715,10 @@ export type StorageColumnInputTypes = {
     readonly Notification: {
       readonly actorId: CodecTypes['pg/int4@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
-      readonly entityId: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly message: CodecTypes['pg/text@1']['input'];
       readonly targetUserId: CodecTypes['pg/int4@1']['input'] | null;
-      readonly tenantId: CodecTypes['pg/text@1']['input'];
+      readonly tenantId: CodecTypes['pg/text@1']['input'] | null;
       readonly type: CodecTypes['pg/text@1']['input'];
     };
     readonly NotificationRead: {
@@ -880,16 +876,15 @@ export namespace Models {
   export type public_Notification = {
     actorId: CodecTypes['pg/int4@1']['output'] | null;
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
-    entityId: CodecTypes['pg/text@1']['output'] | null;
     id: CodecTypes['pg/text@1']['output'];
     message: CodecTypes['pg/text@1']['output'];
     targetUserId: CodecTypes['pg/int4@1']['output'] | null;
-    tenantId: CodecTypes['pg/text@1']['output'];
+    tenantId: CodecTypes['pg/text@1']['output'] | null;
     type: CodecTypes['pg/text@1']['output'];
     actor: public_User | null;
     reads: public_NotificationRead[];
     targetUser: public_User | null;
-    tenant: public_Organization;
+    tenant: public_Organization | null;
     readonly [RelationKeys]?: 'actor' | 'reads' | 'targetUser' | 'tenant';
   };
   export type public_NotificationRead = {
@@ -1579,11 +1574,6 @@ type ContractBase = Omit<
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
                 };
-                readonly entityId: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
                 readonly id: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -1602,7 +1592,7 @@ type ContractBase = Omit<
                 readonly tenantId: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
+                  readonly nullable: true;
                 };
                 readonly type: {
                   readonly nativeType: 'text';
@@ -2780,10 +2770,6 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-temporal@1';
                 };
               };
-              readonly entityId: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -2797,7 +2783,7 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
               readonly tenantId: {
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly type: {
@@ -2841,7 +2827,7 @@ type ContractBase = Omit<
                   readonly model: 'Organization';
                 };
                 readonly cardinality: 'N:1';
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly on: {
                   readonly localFields: readonly ['tenantId'];
                   readonly targetFields: readonly ['id'];
@@ -2854,7 +2840,6 @@ type ContractBase = Omit<
               readonly fields: {
                 readonly actorId: { readonly column: 'actorId' };
                 readonly createdAt: { readonly column: 'createdAt' };
-                readonly entityId: { readonly column: 'entityId' };
                 readonly id: { readonly column: 'id' };
                 readonly message: { readonly column: 'message' };
                 readonly targetUserId: { readonly column: 'targetUserId' };

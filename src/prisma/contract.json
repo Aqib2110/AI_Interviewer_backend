@@ -932,13 +932,6 @@
                   "kind": "scalar"
                 }
               },
-              "entityId": {
-                "nullable": true,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-                }
-              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -961,7 +954,7 @@
                 }
               },
               "tenantId": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -1025,7 +1018,7 @@
               },
               "tenant": {
                 "cardinality": "N:1",
-                "nullable": false,
+                "nullable": true,
                 "on": {
                   "localFields": [
                     "tenantId"
@@ -1047,9 +1040,6 @@
                 },
                 "createdAt": {
                   "column": "createdAt"
-                },
-                "entityId": {
-                  "column": "entityId"
                 },
                 "id": {
                   "column": "id"
@@ -2700,11 +2690,6 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
-                "entityId": {
-                  "codecId": "pg/text@1",
-                  "nativeType": "text",
-                  "nullable": true
-                },
                 "id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -2723,7 +2708,7 @@
                 "tenantId": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
-                  "nullable": false
+                  "nullable": true
                 },
                 "type": {
                   "codecId": "pg/text@1",
@@ -3518,7 +3503,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "b90d68910981e23dcb2e640738f010bdc5e68ed25f601af153a76733867e6d1b"
+    "storageHash": "4be496c85d9abb70261cd6bbaff9a777564a53f9085eab024f38b828a8eea17d"
   },
   "execution": {
     "executionHash": "526fa49dc2f03c7747139b01183ec32e2c26b17269281feded45ab7ce900ee1c",

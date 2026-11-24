@@ -70,7 +70,6 @@ userRouter.get("/user/search",
 userRouter.get(
   "/user/notifications",
   authMiddlware,
-  isolateTenant,
   sessionContext,
   getUserNotifications,
 );

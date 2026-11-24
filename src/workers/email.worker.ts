@@ -6,6 +6,7 @@ import {
   interviewEmailTemplate,
   sendEmail,
 } from "../lib/email.js";
+import { db } from '../prisma/db.js';
 
 console.log("Email worker file loaded");
 
@@ -60,12 +61,6 @@ const worker = new Worker(
   }
 );
 
-// console.log("WORKER:", {
-//   host: redis.options.host,
-//   port: redis.options.port,
-//   db: redis.options.db,
-//   queue: worker.name,
-// });
 
 worker.on("ready", () => {
   console.log("Email worker is ready and waiting for jobs");

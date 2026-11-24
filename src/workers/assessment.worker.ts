@@ -150,6 +150,7 @@ const worker = new Worker(
         id: interviewId,
       })
         .include("Message")
+        .include("user")
         .first();
 
       if (!candidateInfo) {
@@ -230,16 +231,28 @@ OUTPUT RULES:
 
       const assessmentReport = JSON.parse(outputText);
 
-      await db.orm.public.Report.create({
+    await db.transaction(async(tx)=>{
+        await tx.orm.public.Report.create({
         interviewId,
         content: JSON.stringify(assessmentReport),
       });
 
-      await db.orm.public.Interview.where({
+   const interview = await tx.orm.public.Interview.where({
         id: interviewId,
       }).update({
         score: assessmentReport.overallScore,
       });
+
+       await tx.orm.public.Notification.create({
+      targetUserId: interview?.candidateId,
+      actorId: interview?.candidateId,
+      tenantId: interview?.tenantId,
+      type: "REPORT_READY",
+      message: `${interview?.createdBy === interview?.candidateId ? "your" : `The candidate ${interview?.candidateEmail}`} report is ready`,
+    });
+    })
+
+
 
       console.log("AI assessment report generated successfully");
     } catch (error) {

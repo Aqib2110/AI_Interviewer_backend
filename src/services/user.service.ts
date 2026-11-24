@@ -210,29 +210,26 @@ const interviews = await db.orm.public.Interview
 }
 
 export const getUserNotifications = async (
-  tenantId: string,
-  userId: number
+  userId: number,
+  tenantId?: string
 ) => {
-  return db.orm.public.Notification
-    .where((n) => n.tenantId.eq(tenantId))
+    const notifications = db.orm.public.Notification
+    .where((n) =>
+      tenantId
+        ? n.tenantId.eq(tenantId)
+        : or(
+            n.targetUserId.eq(userId),
+            n.actorId.eq(userId)
+          )
+    )
     .where((n) =>
       n.reads.none((r) => r.userId.eq(userId))
     )
-    .where((n) =>
-      or(
-        n.actorId.isNull(),
-        n.actorId.neq(userId)
-      )
-    )
-    .where((n) =>
-      or(
-        n.targetUserId.isNull(),
-        n.targetUserId.neq(userId)
-      )
-    )
-    .orderBy((n) => n.createdAt.desc())
-    .all();
+    .orderBy((n) => n.createdAt.desc());
+
+  return notifications.all();
 };
+
 
 
 

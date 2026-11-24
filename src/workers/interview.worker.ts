@@ -20,47 +20,44 @@ const worker = new Worker(
           .include("InterviewSegment")
           .update({
             endedAt: Temporal.Now.instant(),
-            status:"COMPELETED"
+            status: "COMPELETED"
           });
 
         if (!interview) {
           throw new Error("Interview not found");
         }
-        if(interview.status === "COMPELETED")
-        {
-        if (!interview?.InterviewSegment.length) {
-          throw new Error("segments are required");
-        }
-       
-        for (const key of interview?.InterviewSegment)
-       {
-        const uploadId = key?.uploadId || null;
-        const videoKey = key?.videoKey || null;
+        if (interview.status === "COMPELETED") {
+          if (!interview?.InterviewSegment.length) {
+            throw new Error("segments are required");
+          }
 
-        if(uploadId && videoKey)
-        {
-        await multiPartCompleted(videoKey,uploadId);
-        }
-        }
-        }
-        
+          for (const key of interview?.InterviewSegment ?? []) {
+            const uploadId = key?.uploadId || null;
+            const videoKey = key?.videoKey || null;
 
-        await AIAssessmentQueue.add("skills_evaluation", {
-          interviewId: interview.id,
-        });
-      } catch (error) {
-        console.error(
-          "Interview expiration failed:",
-          error instanceof Error ? error.message : error
-        );
+            if (uploadId && videoKey) {
+              await multiPartCompleted(videoKey, uploadId);
+            }
+          }
+        }
 
-        throw error;
+          await AIAssessmentQueue.add("skills_evaluation", {
+            interviewId: interview.id,
+          });
+        } catch (error) {
+          console.error(
+            "Interview expiration failed:",
+            error instanceof Error ? error.message : error
+          );
+
+          throw error;
+        }
       }
-    }
   },
-  { connection: redis,
-     concurrency: 3
-   }
+    {
+      connection: redis,
+        concurrency: 3
+    }
 );
 
 worker.on("ready", () => {

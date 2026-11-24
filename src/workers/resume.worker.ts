@@ -112,7 +112,8 @@ Rules:
 
       const result = JSON.parse(content);
 
-      await db.orm.public.Resume.where({
+     await db.transaction(async(tx)=>{
+        await tx.orm.public.Resume.where({
         id: resumeId,
         userId: userId,
       }).update({
@@ -120,6 +121,14 @@ Rules:
         skills: JSON.stringify(result.skills),
       });
 
+       await tx.orm.public.Notification.create({
+      targetUserId: userId,
+      actorId:userId,
+      type: "RESUME",
+      message: `your resume is ready for the interview.`,
+    });
+
+     })
       console.log("Resume processed successfully:", resumeId);
     } catch (error) {
       console.error(
