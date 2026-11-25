@@ -317,8 +317,9 @@ export const getCandidateInfo = async (id: string) => {
   return db.orm.public.Interview.where((iv) =>
     iv.interviewcandidate.some({ id: id }),
   )
-    .include("interviewcandidate")
-    .include("Report")
+.include("interviewcandidate", (candidate) =>
+      candidate.include("resume"),
+    )    .include("Report")
     .all();
 };
 

@@ -341,7 +341,9 @@ export const getOrgInterviewDetails = async (
       "endedAt",
     )
     .include("InterviewSegment")
-    .include("interviewcandidate")
+    .include("interviewcandidate",(candidate)=>
+      candidate.include("resume")
+    )
     .include("Message")
     .include("Report")
     .first();
@@ -465,7 +467,7 @@ export const createOrgCandidate = async (
   }
 
   if (
-    !interview.startedAt || interview.endedAt || (interview.expiresAt &&
+    interview.startedAt || interview.endedAt || (interview.expiresAt &&
       Date.now() >= interview.expiresAt.epochMilliseconds)
   ) {
     throw new AppError("interview is not active", 403);
