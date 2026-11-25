@@ -392,6 +392,22 @@ export const getInterviewVideoSignedUrls = async (
       throw new AppError("segment not found",401)
     }
 
+    const interview = await db.orm.public.Interview.where({
+      id:interviewId
+    }).first();
+
+    if(!interview)
+    {
+       throw new AppError("interview not found",401)
+    }
+
+ if (
+    !interview.startedAt || interview.endedAt || (interview.expiresAt &&
+    Date.now() >= interview.expiresAt.epochMilliseconds)
+  ) {
+    throw new AppError("interview is not active", 403);
+  }
+
     const {
     startPart,
     count,
@@ -413,16 +429,45 @@ export const createOrgCandidate = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { name, location, experience, phone, currRole,slug,tenantId } = req.body;
-  if(!name || !experience || !currRole || !slug || !tenantId)
-  {
-    throw new AppError("name, experience ,role ,slug and tenantId are all required",401);
-  }
   try {
-    await createOrgCandidateService(name,location,experience,phone,currRole,slug,tenantId);
+    const {
+      name,
+      location,
+      experience,
+      phone,
+      currRole,
+      slug,
+      tenantId,
+    } = req.body;
 
-    return res.status(200).json({
-      message: "candidate created successfully",
+    if (!name || !experience || !currRole || !slug || !tenantId) {
+      throw new AppError(
+        "Name, experience, role, slug and tenantId are required",
+        400,
+      );
+    }
+
+    const fileData = req.file
+      ? {
+          mimetype: req.file.mimetype,
+          fileName: req.file.originalname,
+          buffer: req.file.buffer,
+        }
+      : undefined;
+
+    await createOrgCandidateService(
+      name,
+      location,
+      experience,
+      phone,
+      currRole,
+      slug,
+      tenantId,
+      fileData,
+    );
+
+    return res.status(201).json({
+      message: "Candidate created successfully",
     });
   } catch (error) {
     next(error);

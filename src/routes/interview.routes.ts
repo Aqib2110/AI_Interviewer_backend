@@ -21,6 +21,7 @@ import {
   getInterviewVideoSignedUrls,
   createOrgCandidate
 } from "../controllers/interview.controller.js";
+import { upload } from "./user.routes.js";
 
 export const interview = Router();
 
@@ -94,15 +95,14 @@ interview.post(
 
 interview.post("/organization/interview/message", createOrgInterviewMsg);
 
-interview.post("/organization/interview/candidate", createOrgCandidate);
+interview.post("/organization/interview/candidate",
+   upload.single("file"),
+   createOrgCandidate);
 
 
 interview.post("/interview/upload/start", createInterviewUpload);
 
 interview.post("/interview/video/sign-url", getInterviewVideoSignedUrls);
-
-
-// interview.post("/interview/upload/complete", createInterviewVideoComplete);
 
 
 interview.post("/interview/segments/:segmentId/complete", interviewSegmentComplete);

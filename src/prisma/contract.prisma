@@ -225,6 +225,7 @@ model Candidate{
   email String
   currRole String
   organizationId String 
+  resume  Resume?
   createdAt DateTime @default(now())
   interviewId String @unique
   interview Interview @relation(fields: [interviewId], references: [id])
@@ -239,8 +240,11 @@ fileUrl String
 fileKey String
 skills String?
 status pg.enum(ResumeState)
-userId Int
-user User @relation(fields: [userId], references: [id])
+userId Int?
+candidateId String?
+candidate Candidate? @relation(fields:[candidateId],references:[id])
+user User? @relation(fields: [userId], references: [id])
+@@unique([candidateId])
 }
 
 

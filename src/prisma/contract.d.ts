@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'4be496c85d9abb70261cd6bbaff9a777564a53f9085eab024f38b828a8eea17d'>;
+  StorageHashBase<'e50a4cf60729b3c9fb2e6a2cc76e9b42ee76b10975073e6eb40540ea20aed50d'>;
 export type ExecutionHash =
   ExecutionHashBase<'526fa49dc2f03c7747139b01183ec32e2c26b17269281feded45ab7ce900ee1c'>;
 export type ProfileHash =
@@ -352,12 +352,13 @@ export type FieldOutputTypes = {
       readonly interviewId: CodecTypes['pg/text@1']['output'];
     };
     readonly Resume: {
+      readonly candidateId: CodecTypes['pg/text@1']['output'] | null;
       readonly fileKey: CodecTypes['pg/text@1']['output'];
       readonly fileUrl: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly skills: CodecTypes['pg/text@1']['output'] | null;
       readonly status: 'PENDING' | 'FAILED' | 'PROCESSED';
-      readonly userId: CodecTypes['pg/int4@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'] | null;
     };
     readonly Session: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -485,12 +486,13 @@ export type FieldInputTypes = {
       readonly interviewId: CodecTypes['pg/text@1']['input'];
     };
     readonly Resume: {
+      readonly candidateId: CodecTypes['pg/text@1']['input'] | null;
       readonly fileKey: CodecTypes['pg/text@1']['input'];
       readonly fileUrl: CodecTypes['pg/text@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly skills: CodecTypes['pg/text@1']['input'] | null;
       readonly status: 'PENDING' | 'FAILED' | 'PROCESSED';
-      readonly userId: CodecTypes['pg/int4@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'] | null;
     };
     readonly Session: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -618,12 +620,13 @@ export type StorageColumnTypes = {
       readonly interviewId: CodecTypes['pg/text@1']['output'];
     };
     readonly Resume: {
+      readonly candidateId: CodecTypes['pg/text@1']['output'] | null;
       readonly fileKey: CodecTypes['pg/text@1']['output'];
       readonly fileUrl: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly skills: CodecTypes['pg/text@1']['output'] | null;
       readonly status: 'PENDING' | 'FAILED' | 'PROCESSED';
-      readonly userId: CodecTypes['pg/int4@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'] | null;
     };
     readonly Session: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -751,12 +754,13 @@ export type StorageColumnInputTypes = {
       readonly interviewId: CodecTypes['pg/text@1']['input'];
     };
     readonly Resume: {
+      readonly candidateId: CodecTypes['pg/text@1']['input'] | null;
       readonly fileKey: CodecTypes['pg/text@1']['input'];
       readonly fileUrl: CodecTypes['pg/text@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly skills: CodecTypes['pg/text@1']['input'] | null;
       readonly status: 'PENDING' | 'FAILED' | 'PROCESSED';
-      readonly userId: CodecTypes['pg/int4@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'] | null;
     };
     readonly Session: {
       readonly createdAt: CodecTypes['pg/timestamptz-temporal@1']['input'];
@@ -795,7 +799,8 @@ export namespace Models {
     phone: CodecTypes['pg/text@1']['output'] | null;
     interview: public_Interview;
     organization: public_Organization;
-    readonly [RelationKeys]?: 'interview' | 'organization';
+    resume: public_Resume | null;
+    readonly [RelationKeys]?: 'interview' | 'organization' | 'resume';
   };
   export type public_Interview = {
     aiSessionId: CodecTypes['pg/text@1']['output'] | null;
@@ -940,14 +945,16 @@ export namespace Models {
     readonly [RelationKeys]?: 'interview';
   };
   export type public_Resume = {
+    candidateId: CodecTypes['pg/text@1']['output'] | null;
     fileKey: CodecTypes['pg/text@1']['output'];
     fileUrl: CodecTypes['pg/text@1']['output'];
     id: CodecTypes['pg/text@1']['output'];
     skills: CodecTypes['pg/text@1']['output'] | null;
     status: 'PENDING' | 'FAILED' | 'PROCESSED';
-    userId: CodecTypes['pg/int4@1']['output'];
-    user: public_User;
-    readonly [RelationKeys]?: 'user';
+    userId: CodecTypes['pg/int4@1']['output'] | null;
+    candidate: public_Candidate | null;
+    user: public_User | null;
+    readonly [RelationKeys]?: 'candidate' | 'user';
   };
   export type public_Session = {
     createdAt: CodecTypes['pg/timestamptz-temporal@1']['output'];
@@ -1921,6 +1928,11 @@ type ContractBase = Omit<
             };
             readonly Resume: {
               columns: {
+                readonly candidateId: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
                 readonly fileKey: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -1950,11 +1962,11 @@ type ContractBase = Omit<
                 readonly userId: {
                   readonly nativeType: 'int4';
                   readonly codecId: 'pg/int4@1';
-                  readonly nullable: false;
+                  readonly nullable: true;
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [];
+              uniques: readonly [{ readonly columns: readonly ['candidateId'] }];
               indexes: readonly [
                 {
                   readonly name: 'Resume_userId_idx_a489d58a';
@@ -1964,6 +1976,18 @@ type ContractBase = Omit<
                 },
               ];
               foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Resume';
+                    readonly columns: readonly ['candidateId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Candidate';
+                    readonly columns: readonly ['id'];
+                  };
+                },
                 {
                   readonly source: {
                     readonly namespaceId: 'public' & NamespaceId;
@@ -2287,6 +2311,18 @@ type ContractBase = Omit<
                 readonly on: {
                   readonly localFields: readonly ['organizationId'];
                   readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly resume: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Resume';
+                };
+                readonly cardinality: '1:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['candidateId'];
                 };
               };
             };
@@ -3155,6 +3191,10 @@ type ContractBase = Omit<
           };
           readonly Resume: {
             readonly fields: {
+              readonly candidateId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly fileKey: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -3180,15 +3220,27 @@ type ContractBase = Omit<
                 };
               };
               readonly userId: {
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
             };
             readonly relations: {
+              readonly candidate: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Candidate';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['candidateId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
               readonly user: {
                 readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
                 readonly cardinality: 'N:1';
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly on: {
                   readonly localFields: readonly ['userId'];
                   readonly targetFields: readonly ['id'];
@@ -3199,6 +3251,7 @@ type ContractBase = Omit<
               readonly table: 'Resume';
               readonly namespaceId: 'public';
               readonly fields: {
+                readonly candidateId: { readonly column: 'candidateId' };
                 readonly fileKey: { readonly column: 'fileKey' };
                 readonly fileUrl: { readonly column: 'fileUrl' };
                 readonly id: { readonly column: 'id' };

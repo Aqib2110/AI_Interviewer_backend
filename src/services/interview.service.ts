@@ -1,15 +1,14 @@
 import { db } from "../prisma/db.js";
-import { InterviewQueue } from "../lib/queue.js";
+import { InterviewQueue, ResumeQueue } from "../lib/queue.js";
 import { AppError } from "../Errors/App.error.js";
 import { randomBytes } from "crypto";
 import redis from "../lib/redis.js";
 import { geminiLiveSession } from "../lib/gemini.js";
-import { getSignedUrlFromS3, multiPartCompleted } from "../lib/s3.js";
+import { getSignedUrlFromS3, multiPartCompleted, uploadFileToS3 } from "../lib/s3.js";
 import { or, and } from "@prisma/orm-postgres/orm-client";
 import { createMultipartUpload } from "../lib/s3.js";
 import { interviewRemainingTime } from "../lib/Time.js";
 import { randomUUID } from "node:crypto";
-
 export const createOrgInterviewSession = async (slug: string, recordingMode: string, mimeType: string, deviceType: string) => {
   const candidateInterview = await db.orm.public.Interview
     .where({ slug })
@@ -29,11 +28,11 @@ export const createOrgInterviewSession = async (slug: string, recordingMode: str
   }
 
   if (
-  candidateInterview.expiresAt &&
-  Date.now() >= candidateInterview.expiresAt.epochMilliseconds
-) {
-  throw new AppError("interview has expired", 403);
-}
+    candidateInterview.expiresAt &&
+    Date.now() >= candidateInterview.expiresAt.epochMilliseconds
+  ) {
+    throw new AppError("interview has expired", 403);
+  }
 
   if (candidateInterview.status === "PENDING") {
     const now = Temporal.Now.instant();
@@ -148,6 +147,7 @@ export const interviewSegmentComplete = async (uploadId: string, segmentId: stri
   if (!interviewSegment) {
     throw new AppError("interview segment not found", 403)
   }
+
   const videoKey = interviewSegment?.videoKey;
   await multiPartCompleted(videoKey, uploadId);
 }
@@ -184,19 +184,19 @@ export const createUserInterviewSession = async (
   if (candidateInterview.status === "COMPELETED") {
     throw new AppError("interview is already done", 403);
   }
-  
-   if (
-  candidateInterview.expiresAt &&
-  Date.now() >= candidateInterview.expiresAt.epochMilliseconds
-) {
-  throw new AppError("interview has expired", 403);
-}
+
+  if (
+    candidateInterview.expiresAt &&
+    Date.now() >= candidateInterview.expiresAt.epochMilliseconds
+  ) {
+    throw new AppError("interview has expired", 403);
+  }
 
 
 
 
   if (candidateInterview.status === "PENDING") {
-     const now = Temporal.Now.instant();
+    const now = Temporal.Now.instant();
     const durationMinutes = candidateInterview.durationMinutes || 8;
     const expiresAt = now.add({ seconds: Math.round(durationMinutes * 60) });
     const interview = await db.orm.public.Interview.where({
@@ -252,7 +252,7 @@ export const createUserInterviewSession = async (
   );
 
 
-    const segment = await db.orm.public.InterviewSegment.create({
+  const segment = await db.orm.public.InterviewSegment.create({
     interviewId: candidateInterview.id,
     videoKey,
     recordingMode,
@@ -445,6 +445,7 @@ export const createOrgCandidate = async (
   currRole: string,
   slug: string,
   tenantId: string,
+  fileData?: any
 ) => {
   const interview = await db.orm.public.Interview.where({
     slug,
@@ -463,7 +464,14 @@ export const createOrgCandidate = async (
     throw new AppError("candidate already exists", 403);
   }
 
-  await db.orm.public.Candidate.create({
+  if (
+    !interview.startedAt || interview.endedAt || (interview.expiresAt &&
+      Date.now() >= interview.expiresAt.epochMilliseconds)
+  ) {
+    throw new AppError("interview is not active", 403);
+  }
+
+  const candidate = await db.orm.public.Candidate.create({
     name,
     location,
     experience,
@@ -473,6 +481,30 @@ export const createOrgCandidate = async (
     organizationId: interview.tenantId,
     interviewId: interview.id,
   });
+
+  if (fileData) {
+    const { mimetype, fileName, buffer } = fileData;
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+
+    if (!allowedTypes.includes(mimetype)) {
+      throw new AppError("Only PDF and DOCX files are allowed", 400);
+    }
+
+    const key = `user/documents/${crypto.randomUUID()}-${fileName}`;
+    console.log(key, "key");
+
+    await uploadFileToS3(key, buffer, mimetype);
+
+    await db.orm.public.Resume.create({
+      candidateId: candidate.id,
+      fileUrl: `${process.env.R2_ENDPOINT}/${key}`,
+      fileKey: key,
+      status: "PROCESSED",
+    });
+  }
 };
 
 
@@ -485,6 +517,22 @@ export const createInterviewUpload = async (interviewId: string, segmentId: stri
 
   if (!segment) {
     throw new AppError("segment not found", 401)
+  }
+
+  if (segment.uploadId) {
+    return segment.uploadId;
+  }
+
+  const interview = await db.orm.public.Interview.where({
+    id: interviewId
+  }).first();
+
+  if (!interview?.startedAt || interview.endedAt || (interview.expiresAt &&
+    Date.now() >= interview.expiresAt.epochMilliseconds)) {
+    throw new AppError("Interview is not active", 403);
+  }
+  if (!segment.videoKey) {
+    throw new AppError("Segment video key not found", 400);
   }
   const uploadId = await createMultipartUpload(segment?.videoKey);
 
@@ -574,6 +622,13 @@ export const createOrgInterviewMsg = async (
 
     if (!interview) {
       throw new AppError("interview not found", 404);
+    }
+
+    if (
+      !interview.startedAt || interview.endedAt || (interview.expiresAt &&
+        Date.now() >= interview.expiresAt.epochMilliseconds)
+    ) {
+      throw new AppError("interview is not active", 403);
     }
 
     cachedInterview = JSON.stringify({

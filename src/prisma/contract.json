@@ -170,6 +170,22 @@
                   "model": "Organization",
                   "namespace": "public"
                 }
+              },
+              "resume": {
+                "cardinality": "1:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "candidateId"
+                  ]
+                },
+                "to": {
+                  "model": "Resume",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -1513,6 +1529,13 @@
           },
           "Resume": {
             "fields": {
+              "candidateId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "fileKey": {
                 "nullable": false,
                 "type": {
@@ -1552,7 +1575,7 @@
                 }
               },
               "userId": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/int4@1",
                   "kind": "scalar"
@@ -1560,9 +1583,25 @@
               }
             },
             "relations": {
+              "candidate": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "candidateId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Candidate",
+                  "namespace": "public"
+                }
+              },
               "user": {
                 "cardinality": "N:1",
-                "nullable": false,
+                "nullable": true,
                 "on": {
                   "localFields": [
                     "userId"
@@ -1579,6 +1618,9 @@
             },
             "storage": {
               "fields": {
+                "candidateId": {
+                  "column": "candidateId"
+                },
                 "fileKey": {
                   "column": "fileKey"
                 },
@@ -3163,6 +3205,11 @@
             },
             "Resume": {
               "columns": {
+                "candidateId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "fileKey": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -3200,10 +3247,26 @@
                 "userId": {
                   "codecId": "pg/int4@1",
                   "nativeType": "int4",
-                  "nullable": false
+                  "nullable": true
                 }
               },
               "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "candidateId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Resume"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Candidate"
+                  }
+                },
                 {
                   "source": {
                     "columns": [
@@ -3236,7 +3299,13 @@
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "candidateId"
+                  ]
+                }
+              ]
             },
             "Session": {
               "columns": {
@@ -3503,7 +3572,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "4be496c85d9abb70261cd6bbaff9a777564a53f9085eab024f38b828a8eea17d"
+    "storageHash": "e50a4cf60729b3c9fb2e6a2cc76e9b42ee76b10975073e6eb40540ea20aed50d"
   },
   "execution": {
     "executionHash": "526fa49dc2f03c7747139b01183ec32e2c26b17269281feded45ab7ce900ee1c",
