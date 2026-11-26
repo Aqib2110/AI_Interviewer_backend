@@ -40,6 +40,7 @@ export type interviewTypes =
 export interface EvalutionCriteria{
   name:string;
   weight: number;
+  description:string;
 }
 
 export const createOrgInterviewSession = async (
