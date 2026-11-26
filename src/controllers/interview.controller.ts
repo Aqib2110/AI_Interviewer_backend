@@ -24,6 +24,24 @@ import {
 } from "../lib/s3.js";
 import { db } from "../prisma/db.js";
 
+export type interviewTypes =
+  | "TECHNICAL"
+  | "BEHAVIORAL" 
+  | "PROJECT_BASED" 
+  | "MIXED"
+  | "HR"
+
+ export type experienceLevelTypes =
+  | "ENTRY_LEVEL"
+  | "JUNIOR"
+  | "MID_LEVEL"
+  | "SENIOR"
+
+export interface EvalutionCriteria{
+  name:string;
+  weight: number;
+}
+
 export const createOrgInterviewSession = async (
   req: Request,
   res: Response,
@@ -31,12 +49,13 @@ export const createOrgInterviewSession = async (
 ) => {
   try {
     const {slug,recordingMode,mimeType,deviceType} = req.body;
-
+   
     if (!slug || !recordingMode || !mimeType || !deviceType) {
-      return res.status(401).json({
-        message: "interview slug,recording,mime and device type is required",
+      return res.status(400).json({
+        message: "interview slug,recording,mime and device type are required",
       });
     }
+
 
     const session = await createOrgInterviewSessionService(slug,recordingMode,mimeType,deviceType);
 
@@ -74,7 +93,7 @@ export const createUserInterviewSession = async (
 
     if (!slug || !recordingMode || !mimeType || !deviceType) {
       return res.status(401).json({
-        message: "interview slug,recording,mime and device type is required",
+        message: "interview slug,recording,mime and device type are required",
       });
     }
 
@@ -93,16 +112,44 @@ export const createOrgInterview = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { title, email, description, skills, compName, role,durationMinutes } = req.body;
-
-  if (!title || !description || !skills) {
+  const { title, email, description, skills, compName, role,durationMinutes,evalutionCriteria,interviewType,experienceLevel } = req.body;
+ const intType:interviewTypes = interviewType;
+    const evalCriteria:EvalutionCriteria[] = evalutionCriteria;
+    const exprLevel: experienceLevelTypes = experienceLevel;
+  if (!title || !email || !description || !skills || !compName || !role || !durationMinutes || !evalutionCriteria.length || !interviewType || !experienceLevel) {
     return res.status(401).json({
-      message: "title, description, and skills are required",
+      message: "title,email, description,skills,interviewType,experienceLevel and evalutionCriteria are required",
     });
   }
 
+  if(!exprLevel)
+  {
+     return res.status(400).json({
+        message: "experienceLevel is invalid",
+      });
+  }
+
+   if(!intType)
+    {
+       return res.status(400).json({
+        message: "interviewType is invalid",
+      });
+    }
+
+    if(!evalCriteria.length){
+     return res.status(400).json({
+        message: "evaluationCriteria is invalid",
+      });
+    }
+
+    if(durationMinutes > 15)
+    {
+       return res.status(400).json({
+        message: "interview duration should not exceed 15 minutes",
+      });
+    }
+
   const slug = randomBytes(16).toString("hex");
-  
   try {
 const interview =  await createOrgInterviewService(
       title,
@@ -114,7 +161,10 @@ const interview =  await createOrgInterviewService(
       slug,
       role,
       compName,
-      durationMinutes
+      durationMinutes,
+      intType,
+      evalCriteria,
+      exprLevel
     );
     console.log("sending email to:", email);
 
@@ -185,13 +235,42 @@ export const createUserInterview = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { title, description, skills, role, compName,durationMinutes } = req.body;
-
-  if (!title || !description) {
+  const { title, description, skills, compName, role,durationMinutes,evalutionCriteria,interviewType,experienceLevel } = req.body;
+ const intType:interviewTypes = interviewType;
+    const evalCriteria:EvalutionCriteria[] = evalutionCriteria;
+    const exprLevel: experienceLevelTypes = experienceLevel;
+  if (!title || !description || !skills || !compName || !role || !durationMinutes || !evalutionCriteria.length || !interviewType || !experienceLevel) {
     return res.status(401).json({
-      message: "title and description are required",
+      message: "title, description,skills,interviewType,experienceLevel and evalutionCriteria are required",
     });
   }
+
+  if(!exprLevel)
+  {
+     return res.status(400).json({
+        message: "experienceLevel is invalid",
+      });
+  }
+
+   if(!intType)
+    {
+       return res.status(400).json({
+        message: "interviewType is invalid",
+      });
+    }
+
+    if(!evalCriteria.length){
+     return res.status(400).json({
+        message: "evaluationCriteria is invalid",
+      });
+    }
+
+    if(durationMinutes > 15)
+    {
+       return res.status(400).json({
+        message: "interview duration should not exceed 15 minutes",
+      });
+    }
 
   try {
     await createUserInterviewService(
@@ -203,7 +282,10 @@ export const createUserInterview = async (
       skills,
       role,
       compName,
-      durationMinutes
+      durationMinutes,
+      intType,
+      evalCriteria,
+      exprLevel
     );
 
     return res.status(200).json({

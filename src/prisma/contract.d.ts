@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'e50a4cf60729b3c9fb2e6a2cc76e9b42ee76b10975073e6eb40540ea20aed50d'>;
+  StorageHashBase<'295197a7c7d9943623c4b47c9a5decdd3217ed2275e45eef3f80550ad59b388a'>;
 export type ExecutionHash =
   ExecutionHashBase<'526fa49dc2f03c7747139b01183ec32e2c26b17269281feded45ab7ce900ee1c'>;
 export type ProfileHash =
@@ -272,8 +272,11 @@ export type FieldOutputTypes = {
       readonly description: CodecTypes['pg/text@1']['output'];
       readonly durationMinutes: CodecTypes['pg/int4@1']['output'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly evalutionCriteria: CodecTypes['pg/json@1']['output'];
+      readonly experienceLevel: 'ENTRY_LEVEL' | 'JUNIOR' | 'MID_LEVEL' | 'SENIOR';
       readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
+      readonly interviewType: 'TECHNICAL' | 'BEHAVIORAL' | 'PROJECT_BASED' | 'MIXED' | 'HR';
       readonly role: CodecTypes['pg/text@1']['output'];
       readonly score: CodecTypes['pg/int4@1']['output'] | null;
       readonly sessionResumptionHandle: CodecTypes['pg/text@1']['output'] | null;
@@ -406,8 +409,11 @@ export type FieldInputTypes = {
       readonly description: CodecTypes['pg/text@1']['input'];
       readonly durationMinutes: CodecTypes['pg/int4@1']['input'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly evalutionCriteria: CodecTypes['pg/json@1']['input'];
+      readonly experienceLevel: 'ENTRY_LEVEL' | 'JUNIOR' | 'MID_LEVEL' | 'SENIOR';
       readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
+      readonly interviewType: 'TECHNICAL' | 'BEHAVIORAL' | 'PROJECT_BASED' | 'MIXED' | 'HR';
       readonly role: CodecTypes['pg/text@1']['input'];
       readonly score: CodecTypes['pg/int4@1']['input'] | null;
       readonly sessionResumptionHandle: CodecTypes['pg/text@1']['input'] | null;
@@ -540,8 +546,11 @@ export type StorageColumnTypes = {
       readonly description: CodecTypes['pg/text@1']['output'];
       readonly durationMinutes: CodecTypes['pg/int4@1']['output'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+      readonly evalutionCriteria: CodecTypes['pg/json@1']['output'];
+      readonly experienceLevel: 'ENTRY_LEVEL' | 'JUNIOR' | 'MID_LEVEL' | 'SENIOR';
       readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
+      readonly interviewType: 'TECHNICAL' | 'BEHAVIORAL' | 'PROJECT_BASED' | 'MIXED' | 'HR';
       readonly role: CodecTypes['pg/text@1']['output'];
       readonly score: CodecTypes['pg/int4@1']['output'] | null;
       readonly sessionResumptionHandle: CodecTypes['pg/text@1']['output'] | null;
@@ -674,8 +683,11 @@ export type StorageColumnInputTypes = {
       readonly description: CodecTypes['pg/text@1']['input'];
       readonly durationMinutes: CodecTypes['pg/int4@1']['input'];
       readonly endedAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
+      readonly evalutionCriteria: CodecTypes['pg/json@1']['input'];
+      readonly experienceLevel: 'ENTRY_LEVEL' | 'JUNIOR' | 'MID_LEVEL' | 'SENIOR';
       readonly expiresAt: CodecTypes['pg/timestamptz-temporal@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
+      readonly interviewType: 'TECHNICAL' | 'BEHAVIORAL' | 'PROJECT_BASED' | 'MIXED' | 'HR';
       readonly role: CodecTypes['pg/text@1']['input'];
       readonly score: CodecTypes['pg/int4@1']['input'] | null;
       readonly sessionResumptionHandle: CodecTypes['pg/text@1']['input'] | null;
@@ -812,8 +824,11 @@ export namespace Models {
     description: CodecTypes['pg/text@1']['output'];
     durationMinutes: CodecTypes['pg/int4@1']['output'];
     endedAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
+    evalutionCriteria: CodecTypes['pg/json@1']['output'];
+    experienceLevel: 'ENTRY_LEVEL' | 'JUNIOR' | 'MID_LEVEL' | 'SENIOR';
     expiresAt: CodecTypes['pg/timestamptz-temporal@1']['output'] | null;
     id: CodecTypes['pg/text@1']['output'];
+    interviewType: 'TECHNICAL' | 'BEHAVIORAL' | 'PROJECT_BASED' | 'MIXED' | 'HR';
     role: CodecTypes['pg/text@1']['output'];
     score: CodecTypes['pg/int4@1']['output'] | null;
     sessionResumptionHandle: CodecTypes['pg/text@1']['output'] | null;
@@ -1175,6 +1190,17 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-temporal@1';
                   readonly nullable: true;
                 };
+                readonly evalutionCriteria: {
+                  readonly nativeType: 'json';
+                  readonly codecId: 'pg/json@1';
+                  readonly nullable: false;
+                };
+                readonly experienceLevel: {
+                  readonly nativeType: 'ExperienceLevel';
+                  readonly codecId: 'pg/enum@1';
+                  readonly nullable: false;
+                  readonly typeParams: { readonly typeName: 'ExperienceLevel' };
+                };
                 readonly expiresAt: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-temporal@1';
@@ -1184,6 +1210,12 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
+                };
+                readonly interviewType: {
+                  readonly nativeType: 'InterviewType';
+                  readonly codecId: 'pg/enum@1';
+                  readonly nullable: false;
+                  readonly typeParams: { readonly typeName: 'InterviewType' };
                 };
                 readonly role: {
                   readonly nativeType: 'text';
@@ -2178,6 +2210,14 @@ type ContractBase = Omit<
             };
           };
           readonly valueSet: {
+            readonly ExperienceLevel: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['ENTRY_LEVEL', 'JUNIOR', 'MID_LEVEL', 'SENIOR'];
+            };
+            readonly InterviewType: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['TECHNICAL', 'BEHAVIORAL', 'PROJECT_BASED', 'MIXED', 'HR'];
+            };
             readonly InvState: {
               readonly kind: 'valueSet';
               readonly values: readonly ['PENDING', 'ACCEPTED'];
@@ -2387,6 +2427,18 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-temporal@1';
                 };
               };
+              readonly evalutionCriteria: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/json@1' };
+              };
+              readonly experienceLevel: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/enum@1';
+                  readonly typeParams: { readonly typeName: 'ExperienceLevel' };
+                };
+              };
               readonly expiresAt: {
                 readonly nullable: true;
                 readonly type: {
@@ -2397,6 +2449,14 @@ type ContractBase = Omit<
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly interviewType: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/enum@1';
+                  readonly typeParams: { readonly typeName: 'InterviewType' };
+                };
               };
               readonly role: {
                 readonly nullable: false;
@@ -2534,8 +2594,11 @@ type ContractBase = Omit<
                 readonly description: { readonly column: 'description' };
                 readonly durationMinutes: { readonly column: 'durationMinutes' };
                 readonly endedAt: { readonly column: 'endedAt' };
+                readonly evalutionCriteria: { readonly column: 'evalutionCriteria' };
+                readonly experienceLevel: { readonly column: 'experienceLevel' };
                 readonly expiresAt: { readonly column: 'expiresAt' };
                 readonly id: { readonly column: 'id' };
+                readonly interviewType: { readonly column: 'interviewType' };
                 readonly role: { readonly column: 'role' };
                 readonly score: { readonly column: 'score' };
                 readonly sessionResumptionHandle: { readonly column: 'sessionResumptionHandle' };

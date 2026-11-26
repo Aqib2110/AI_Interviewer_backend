@@ -7,12 +7,15 @@ import { geminiLiveSession } from "../lib/gemini.js";
 import { getSignedUrlFromS3, multiPartCompleted, uploadFileToS3 } from "../lib/s3.js";
 import { or, and } from "@prisma/orm-postgres/orm-client";
 import { createMultipartUpload } from "../lib/s3.js";
+import {EvalutionCriteria,experienceLevelTypes,interviewTypes} from '../controllers/interview.controller.js'
 import { interviewRemainingTime } from "../lib/Time.js";
+import { JsonValue } from "@prisma/orm-postgres/target/codec-types";
 import { randomUUID } from "node:crypto";
 export const createOrgInterviewSession = async (slug: string, recordingMode: string, mimeType: string, deviceType: string) => {
   const candidateInterview = await db.orm.public.Interview
     .where({ slug })
     .include("user")
+    .include("interviewcandidate")
     .first();
 
   if (!candidateInterview) {
@@ -104,12 +107,19 @@ export const createOrgInterviewSession = async (slug: string, recordingMode: str
   const sessionResumptionHandle =
     candidateInterview.sessionResumptionHandle ?? null;
   const remTime = candidateInterview.startedAt ? interviewRemainingTime(candidateInterview) : null;
-
+  const evalutionCriteria: EvalutionCriteria[] =
+  Array.isArray(candidateInterview?.evalutionCriteria)
+    ? (candidateInterview.evalutionCriteria as EvalutionCriteria[])
+    : [];
   const token = await geminiLiveSession(
     candidateInterview?.description,
     candidateInterview?.skills,
     candidateInterview?.durationMinutes,
-    remTime
+    remTime,
+    candidateInterview?.interviewcandidate?.name,
+    candidateInterview?.interviewType,
+    evalutionCriteria,
+    candidateInterview?.experienceLevel
   );
 
   const id = randomUUID();
@@ -171,7 +181,8 @@ export const createUserInterviewSession = async (
   const candidateInterview = await db.orm.public.Interview.where({
     slug: slug,
     createdBy: userId,
-  }).first();
+  }).include("user")
+  .first();
 
   if (!candidateInterview) {
     throw new AppError("no interview found", 404);
@@ -240,7 +251,10 @@ export const createUserInterviewSession = async (
   const sessionResumptionHandle =
     candidateInterview.sessionResumptionHandle ?? null;
   const remTime = candidateInterview.startedAt ? interviewRemainingTime(candidateInterview) : null;
-
+   const evalutionCriteria: EvalutionCriteria[] =
+  Array.isArray(candidateInterview?.evalutionCriteria)
+    ? (candidateInterview.evalutionCriteria as EvalutionCriteria[])
+    : [];
   const id = randomUUID();
   const videoKey = `interviews/${candidateInterview?.id}/${id}/recording.webm`;
 
@@ -248,7 +262,11 @@ export const createUserInterviewSession = async (
     candidateInterview?.description,
     candidateInterview?.skills,
     candidateInterview?.durationMinutes,
-    remTime
+    remTime,
+    candidateInterview?.user?.name,
+    candidateInterview?.interviewType,
+evalutionCriteria,
+candidateInterview?.experienceLevel
   );
 
 
@@ -284,6 +302,9 @@ export const createOrgInterview = async (
   role: string,
   compName: string,
   durationMinutes: number,
+  interviewType:interviewTypes,
+  evalutionCriteria:EvalutionCriteria[],
+  experienceLevel:experienceLevelTypes
 ) => {
   return db.transaction(async (tx: any) => {
     const interview = await tx.orm.public.Interview.create({
@@ -298,6 +319,10 @@ export const createOrgInterview = async (
       compName,
       slug,
       durationMinutes,
+      interviewType,
+      evalutionCriteria:
+    evalutionCriteria as unknown as JsonValue,
+    experienceLevel
     });
 
     await tx.orm.public.Notification.create({
@@ -377,9 +402,11 @@ export const createUserInterview = async (
   role: string,
   compName: string,
   durationMinutes: number,
+  interviewType:interviewTypes,
+  evalutionCriteria:EvalutionCriteria[],
+  experienceLevel:experienceLevelTypes
 ) => {
   const slug = randomBytes(16).toString("hex");
-
   return await db.orm.public.Interview.create({
     title,
     description,
@@ -393,6 +420,10 @@ export const createUserInterview = async (
     compName,
     slug,
     durationMinutes,
+    interviewType,
+   evalutionCriteria:
+    evalutionCriteria as unknown as JsonValue,
+    experienceLevel:experienceLevel
   });
 };
 

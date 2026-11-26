@@ -12,6 +12,22 @@ native_enum State {
   COMPELETED = "COMPELETED"
 }
 
+native_enum InterviewType {
+  TECHNICAL  = "TECHNICAL"
+  BEHAVIORAL = "BEHAVIORAL"
+  PROJECT_BASED = "PROJECT_BASED"
+  MIXED="MIXED"
+  HR="HR"
+}
+
+native_enum ExperienceLevel {
+  ENTRY_LEVEL = "ENTRY_LEVEL"
+  JUNIOR = "JUNIOR"
+  MID_LEVEL = "MID_LEVEL"
+  SENIOR = "SENIOR"
+}
+
+
 native_enum InvState {
   PENDING  = "PENDING"
   ACCEPTED = "ACCEPTED"
@@ -162,7 +178,10 @@ model Interview {
   description   String
   candidateId   Int?
   status        pg.enum(State)
+  interviewType          pg.enum(InterviewType)
+  evalutionCriteria      Json
   durationMinutes      Int
+  experienceLevel       pg.enum(ExperienceLevel)
   role          String
   compName      String
   score         Int?

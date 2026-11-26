@@ -290,6 +290,23 @@
                   "kind": "scalar"
                 }
               },
+              "evalutionCriteria": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/json@1",
+                  "kind": "scalar"
+                }
+              },
+              "experienceLevel": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/enum@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "typeName": "ExperienceLevel"
+                  }
+                }
+              },
               "expiresAt": {
                 "nullable": true,
                 "type": {
@@ -302,6 +319,16 @@
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
+                }
+              },
+              "interviewType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/enum@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "typeName": "InterviewType"
+                  }
                 }
               },
               "role": {
@@ -513,11 +540,20 @@
                 "endedAt": {
                   "column": "endedAt"
                 },
+                "evalutionCriteria": {
+                  "column": "evalutionCriteria"
+                },
+                "experienceLevel": {
+                  "column": "experienceLevel"
+                },
                 "expiresAt": {
                   "column": "expiresAt"
                 },
                 "id": {
                   "column": "id"
+                },
+                "interviewType": {
+                  "column": "interviewType"
                 },
                 "role": {
                   "column": "role"
@@ -1999,6 +2035,27 @@
       "public": {
         "entries": {
           "native_enum": {
+            "ExperienceLevel": {
+              "kind": "postgres-enum",
+              "members": [
+                "ENTRY_LEVEL",
+                "JUNIOR",
+                "MID_LEVEL",
+                "SENIOR"
+              ],
+              "typeName": "ExperienceLevel"
+            },
+            "InterviewType": {
+              "kind": "postgres-enum",
+              "members": [
+                "TECHNICAL",
+                "BEHAVIORAL",
+                "PROJECT_BASED",
+                "MIXED",
+                "HR"
+              ],
+              "typeName": "InterviewType"
+            },
             "InvState": {
               "kind": "postgres-enum",
               "members": [
@@ -2208,6 +2265,25 @@
                   "nativeType": "timestamptz",
                   "nullable": true
                 },
+                "evalutionCriteria": {
+                  "codecId": "pg/json@1",
+                  "nativeType": "json",
+                  "nullable": false
+                },
+                "experienceLevel": {
+                  "codecId": "pg/enum@1",
+                  "nativeType": "ExperienceLevel",
+                  "nullable": false,
+                  "typeParams": {
+                    "typeName": "ExperienceLevel"
+                  },
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "ExperienceLevel",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
                 "expiresAt": {
                   "codecId": "pg/timestamptz-temporal@1",
                   "nativeType": "timestamptz",
@@ -2217,6 +2293,20 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "interviewType": {
+                  "codecId": "pg/enum@1",
+                  "nativeType": "InterviewType",
+                  "nullable": false,
+                  "typeParams": {
+                    "typeName": "InterviewType"
+                  },
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "InterviewType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
                 },
                 "role": {
                   "codecId": "pg/text@1",
@@ -3535,6 +3625,25 @@
             }
           },
           "valueSet": {
+            "ExperienceLevel": {
+              "kind": "valueSet",
+              "values": [
+                "ENTRY_LEVEL",
+                "JUNIOR",
+                "MID_LEVEL",
+                "SENIOR"
+              ]
+            },
+            "InterviewType": {
+              "kind": "valueSet",
+              "values": [
+                "TECHNICAL",
+                "BEHAVIORAL",
+                "PROJECT_BASED",
+                "MIXED",
+                "HR"
+              ]
+            },
             "InvState": {
               "kind": "valueSet",
               "values": [
@@ -3572,7 +3681,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "e50a4cf60729b3c9fb2e6a2cc76e9b42ee76b10975073e6eb40540ea20aed50d"
+    "storageHash": "295197a7c7d9943623c4b47c9a5decdd3217ed2275e45eef3f80550ad59b388a"
   },
   "execution": {
     "executionHash": "526fa49dc2f03c7747139b01183ec32e2c26b17269281feded45ab7ce900ee1c",
