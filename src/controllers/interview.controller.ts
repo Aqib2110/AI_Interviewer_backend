@@ -26,21 +26,21 @@ import { db } from "../prisma/db.js";
 
 export type interviewTypes =
   | "TECHNICAL"
-  | "BEHAVIORAL" 
-  | "PROJECT_BASED" 
+  | "BEHAVIORAL"
+  | "PROJECT_BASED"
   | "MIXED"
   | "HR"
 
- export type experienceLevelTypes =
+export type experienceLevelTypes =
   | "ENTRY_LEVEL"
   | "JUNIOR"
   | "MID_LEVEL"
   | "SENIOR"
 
-export interface EvalutionCriteria{
-  name:string;
+export interface EvalutionCriteria {
+  name: string;
   weight: number;
-  description:string;
+  description: string;
 }
 
 export const createOrgInterviewSession = async (
@@ -49,8 +49,8 @@ export const createOrgInterviewSession = async (
   next: NextFunction,
 ) => {
   try {
-    const {slug,recordingMode,mimeType,deviceType} = req.body;
-   
+    const { slug, recordingMode, mimeType, deviceType } = req.body;
+
     if (!slug || !recordingMode || !mimeType || !deviceType) {
       return res.status(400).json({
         message: "interview slug,recording,mime and device type are required",
@@ -58,7 +58,7 @@ export const createOrgInterviewSession = async (
     }
 
 
-    const session = await createOrgInterviewSessionService(slug,recordingMode,mimeType,deviceType);
+    const session = await createOrgInterviewSessionService(slug, recordingMode, mimeType, deviceType);
 
     res.status(200).json({
       ...session,
@@ -75,11 +75,11 @@ export const createSessionResumptionUpdate = async (
   next: NextFunction,
 ) => {
   try {
-    const {handle,interviewId} = req.body;
-     await createSessionResumptionUpdateService(handle,interviewId);
-     return res.status(200).json({
-      message:"sessionResumption updated successfully"
-     })
+    const { handle, interviewId } = req.body;
+    await createSessionResumptionUpdateService(handle, interviewId);
+    return res.status(200).json({
+      message: "sessionResumption updated successfully"
+    })
   } catch (error) {
     next(error);
   }
@@ -90,7 +90,7 @@ export const createUserInterviewSession = async (
   next: NextFunction,
 ) => {
   try {
-    const {slug,recordingMode,mimeType,deviceType} = req.body;
+    const { slug, recordingMode, mimeType, deviceType } = req.body;
 
     if (!slug || !recordingMode || !mimeType || !deviceType) {
       return res.status(401).json({
@@ -98,7 +98,7 @@ export const createUserInterviewSession = async (
       });
     }
 
-    const session = await createUserInterviewSessionService(slug,(req as any)?.user?.id,recordingMode,mimeType,deviceType);
+    const session = await createUserInterviewSessionService(slug, (req as any)?.user?.id, recordingMode, mimeType, deviceType);
 
     res.status(200).json({
       ...session
@@ -113,57 +113,54 @@ export const createOrgInterview = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { title, email, description, skills, compName, role,durationMinutes,evalutionCriteria,interviewType,experienceLevel } = req.body;
- const intType:interviewTypes = interviewType;
-    const evalCriteria:EvalutionCriteria[] = evalutionCriteria;
-    const exprLevel: experienceLevelTypes = experienceLevel;
+  const { title, email, description, skills, compName, role, durationMinutes, evalutionCriteria, interviewType, experienceLevel } = req.body;
+  const intType: interviewTypes = interviewType;
+  const evalCriteria: EvalutionCriteria[] = evalutionCriteria;
+  const exprLevel: experienceLevelTypes = experienceLevel;
   if (!title || !email || !description || !skills || !compName || !role || !durationMinutes || !evalutionCriteria.length || !interviewType || !experienceLevel) {
     return res.status(401).json({
       message: "title,email, description,skills,interviewType,experienceLevel and evalutionCriteria are required",
     });
   }
 
-  if(!exprLevel)
-  {
-     return res.status(400).json({
-        message: "experienceLevel is invalid",
-      });
+  if (!exprLevel) {
+    return res.status(400).json({
+      message: "experienceLevel is invalid",
+    });
   }
 
-   if(!intType)
-    {
-       return res.status(400).json({
-        message: "interviewType is invalid",
-      });
-    }
+  if (!intType) {
+    return res.status(400).json({
+      message: "interviewType is invalid",
+    });
+  }
 
-    const totalWeight = evalCriteria.reduce(
-      (sum, c) => sum + Number(c.weight),
-      0
-    );
+  const totalWeight = evalCriteria.reduce(
+    (sum, c) => sum + Number(c.weight),
+    0
+  );
 
-    if (totalWeight > 100) {
-      return res.status(400).json({
-        message: "evaluationCriteria total weight should not be greater than 100",
-      });
-    }
+  if (totalWeight > 100) {
+    return res.status(400).json({
+      message: "evaluationCriteria total weight should not be greater than 100",
+    });
+  }
 
-    if(!evalCriteria.length){
-     return res.status(400).json({
-        message: "evaluationCriteria is invalid",
-      });
-    }
+  if (!evalCriteria.length) {
+    return res.status(400).json({
+      message: "evaluationCriteria is invalid",
+    });
+  }
 
-    if(durationMinutes > 15)
-    {
-       return res.status(400).json({
-        message: "interview duration should not exceed 15 minutes",
-      });
-    }
+  if (durationMinutes > 15) {
+    return res.status(400).json({
+      message: "interview duration should not exceed 15 minutes",
+    });
+  }
 
   const slug = randomBytes(16).toString("hex");
   try {
-const interview =  await createOrgInterviewService(
+    const interview = await createOrgInterviewService(
       title,
       description,
       skills,
@@ -180,12 +177,18 @@ const interview =  await createOrgInterviewService(
     );
     console.log("sending email to:", email);
 
-await emailQueue.add("sendInterviewEmail", {
-  email,
-  slug,
-  companyName: compName,
-  role,
-});
+    await emailQueue.add("sendInterviewEmail", {
+      email,
+      slug,
+      companyName: compName,
+      role,
+    }, {
+      attempts: 5,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
+      }
+    });
 
 
     return res.status(200).json({
@@ -247,54 +250,51 @@ export const createUserInterview = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { title, description, skills, compName, role,durationMinutes,evalutionCriteria,interviewType,experienceLevel } = req.body;
- const intType:interviewTypes = interviewType;
-    const evalCriteria:EvalutionCriteria[] = evalutionCriteria;
-    const exprLevel: experienceLevelTypes = experienceLevel;
+  const { title, description, skills, compName, role, durationMinutes, evalutionCriteria, interviewType, experienceLevel } = req.body;
+  const intType: interviewTypes = interviewType;
+  const evalCriteria: EvalutionCriteria[] = evalutionCriteria;
+  const exprLevel: experienceLevelTypes = experienceLevel;
   if (!title || !description || !skills || !compName || !role || !durationMinutes || !evalutionCriteria.length || !interviewType || !experienceLevel) {
     return res.status(401).json({
       message: "title, description,skills,interviewType,experienceLevel and evalutionCriteria are required",
     });
   }
 
-  if(!exprLevel)
-  {
-     return res.status(400).json({
-        message: "experienceLevel is invalid",
-      });
+  if (!exprLevel) {
+    return res.status(400).json({
+      message: "experienceLevel is invalid",
+    });
   }
 
-   if(!intType)
-    {
-       return res.status(400).json({
-        message: "interviewType is invalid",
-      });
-    }
+  if (!intType) {
+    return res.status(400).json({
+      message: "interviewType is invalid",
+    });
+  }
 
-    if(!evalCriteria.length){
-     return res.status(400).json({
-        message: "evaluationCriteria is invalid",
-      });
-    }
+  if (!evalCriteria.length) {
+    return res.status(400).json({
+      message: "evaluationCriteria is invalid",
+    });
+  }
 
 
-     const totalWeight = evalCriteria.reduce(
-      (sum, c) => sum + Number(c.weight),
-      0
-    );
+  const totalWeight = evalCriteria.reduce(
+    (sum, c) => sum + Number(c.weight),
+    0
+  );
 
-    if (totalWeight > 100) {
-      return res.status(400).json({
-        message: "evaluationCriteria total weight should not be greater than 100",
-      });
-    }
+  if (totalWeight > 100) {
+    return res.status(400).json({
+      message: "evaluationCriteria total weight should not be greater than 100",
+    });
+  }
 
-    if(durationMinutes > 15)
-    {
-       return res.status(400).json({
-        message: "interview duration should not exceed 15 minutes",
-      });
-    }
+  if (durationMinutes > 15) {
+    return res.status(400).json({
+      message: "interview duration should not exceed 15 minutes",
+    });
+  }
 
   try {
     await createUserInterviewService(
@@ -364,7 +364,7 @@ export const createUserInterviewMsg = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { interviewId, userMsg, aiMsg,askedAt,segmentId,askedAtMs } = req.body;
+  const { interviewId, userMsg, aiMsg, askedAt, segmentId, askedAtMs } = req.body;
 
   if (!interviewId || !userMsg || !aiMsg || !askedAt || !segmentId || !askedAtMs) {
     return res.status(400).json({
@@ -396,7 +396,7 @@ export const createOrgInterviewMsg = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { organizationId, userMsg, aiMsg, interviewId, slug,askedAt,segmentId,askedAtMs } = req.body;
+  const { organizationId, userMsg, aiMsg, interviewId, slug, askedAt, segmentId, askedAtMs } = req.body;
 
   if (!interviewId || !userMsg || !aiMsg || !organizationId || !slug || !askedAt || !segmentId || !askedAtMs) {
     return res.status(400).json({
@@ -429,7 +429,7 @@ export const createInterviewUpload = async (
   next: NextFunction,
 ) => {
   try {
-    const { interviewId,segmentId } = req.body;
+    const { interviewId, segmentId } = req.body;
 
     if (!interviewId || !segmentId) {
       return res.status(403).json({
@@ -437,7 +437,7 @@ export const createInterviewUpload = async (
       });
     }
 
-    const uploadId = await createInterviewUploadService(interviewId,segmentId);
+    const uploadId = await createInterviewUploadService(interviewId, segmentId);
 
     return res.status(200).json({
       uploadId,
@@ -448,27 +448,27 @@ export const createInterviewUpload = async (
 };
 
 
-export const interviewSegmentComplete = async(
+export const interviewSegmentComplete = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-     const {uploadId} = req.body;
+    const { uploadId } = req.body;
     const segmentId = req.params.segmentId.toString();
 
 
     if (!uploadId || !segmentId) {
       throw new AppError("uploadId and segmentId is required", 401);
     }
-    
+
     await interviewSegmentCompleteService(uploadId, segmentId);
 
     res.status(200).json({
       message: "Upload completed successfully",
     });
 
-    } catch (error) {
+  } catch (error) {
     next(error)
   }
 }
@@ -480,9 +480,9 @@ export const getInterviewVideoSignedUrls = async (
   next: NextFunction,
 ) => {
   try {
-    const { interviewId, uploadId,segmentId } = req.body;
+    const { interviewId, uploadId, segmentId } = req.body;
 
-    if (!interviewId || !uploadId ) {
+    if (!interviewId || !uploadId) {
       return res.status(403).json({
         message: "interviewId and uploadId is required",
       });
@@ -493,32 +493,30 @@ export const getInterviewVideoSignedUrls = async (
       id: segmentId
     }).first();
 
-    if(!segment)
-    {
-      throw new AppError("segment not found",401)
+    if (!segment) {
+      throw new AppError("segment not found", 401)
     }
 
     const interview = await db.orm.public.Interview.where({
-      id:interviewId
+      id: interviewId
     }).first();
 
-    if(!interview)
-    {
-       throw new AppError("interview not found",401)
+    if (!interview) {
+      throw new AppError("interview not found", 401)
     }
 
- if (
-    !interview.startedAt || interview.endedAt || (interview.expiresAt &&
-    Date.now() >= interview.expiresAt.epochMilliseconds)
-  ) {
-    throw new AppError("interview is not active", 403);
-  }
+    if (
+      !interview.startedAt || interview.endedAt || (interview.expiresAt &&
+        Date.now() >= interview.expiresAt.epochMilliseconds)
+    ) {
+      throw new AppError("interview is not active", 403);
+    }
 
     const {
-    startPart,
-    count,
-    urls,
-  } = await getNextRecordingPartUrls(segment?.videoKey, uploadId);
+      startPart,
+      count,
+      urls,
+    } = await getNextRecordingPartUrls(segment?.videoKey, uploadId);
 
     return res.status(200).json({
       startPart,
@@ -555,10 +553,10 @@ export const createOrgCandidate = async (
 
     const fileData = req.file
       ? {
-          mimetype: req.file.mimetype,
-          fileName: req.file.originalname,
-          buffer: req.file.buffer,
-        }
+        mimetype: req.file.mimetype,
+        fileName: req.file.originalname,
+        buffer: req.file.buffer,
+      }
       : undefined;
 
     await createOrgCandidateService(

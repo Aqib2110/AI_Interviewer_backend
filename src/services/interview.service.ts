@@ -7,7 +7,7 @@ import { geminiLiveSession } from "../lib/gemini.js";
 import { getSignedUrlFromS3, multiPartCompleted, uploadFileToS3 } from "../lib/s3.js";
 import { or, and } from "@prisma/orm-postgres/orm-client";
 import { createMultipartUpload } from "../lib/s3.js";
-import {EvalutionCriteria,experienceLevelTypes,interviewTypes} from '../controllers/interview.controller.js'
+import { EvalutionCriteria, experienceLevelTypes, interviewTypes } from '../controllers/interview.controller.js'
 import { interviewRemainingTime } from "../lib/Time.js";
 import { JsonValue } from "@prisma/orm-postgres/target/codec-types";
 import { randomUUID } from "node:crypto";
@@ -108,9 +108,9 @@ export const createOrgInterviewSession = async (slug: string, recordingMode: str
     candidateInterview.sessionResumptionHandle ?? null;
   const remTime = candidateInterview.startedAt ? interviewRemainingTime(candidateInterview) : null;
   const evalutionCriteria: EvalutionCriteria[] =
-  Array.isArray(candidateInterview?.evalutionCriteria)
-    ? (candidateInterview.evalutionCriteria as EvalutionCriteria[])
-    : [];
+    Array.isArray(candidateInterview?.evalutionCriteria)
+      ? (candidateInterview.evalutionCriteria as EvalutionCriteria[])
+      : [];
   const token = await geminiLiveSession(
     candidateInterview?.description,
     candidateInterview?.skills,
@@ -182,7 +182,7 @@ export const createUserInterviewSession = async (
     slug: slug,
     createdBy: userId,
   }).include("user")
-  .first();
+    .first();
 
   if (!candidateInterview) {
     throw new AppError("no interview found", 404);
@@ -251,10 +251,10 @@ export const createUserInterviewSession = async (
   const sessionResumptionHandle =
     candidateInterview.sessionResumptionHandle ?? null;
   const remTime = candidateInterview.startedAt ? interviewRemainingTime(candidateInterview) : null;
-   const evalutionCriteria: EvalutionCriteria[] =
-  Array.isArray(candidateInterview?.evalutionCriteria)
-    ? (candidateInterview.evalutionCriteria as EvalutionCriteria[])
-    : [];
+  const evalutionCriteria: EvalutionCriteria[] =
+    Array.isArray(candidateInterview?.evalutionCriteria)
+      ? (candidateInterview.evalutionCriteria as EvalutionCriteria[])
+      : [];
   const id = randomUUID();
   const videoKey = `interviews/${candidateInterview?.id}/${id}/recording.webm`;
 
@@ -265,8 +265,8 @@ export const createUserInterviewSession = async (
     remTime,
     candidateInterview?.user?.name,
     candidateInterview?.interviewType,
-evalutionCriteria,
-candidateInterview?.experienceLevel
+    evalutionCriteria,
+    candidateInterview?.experienceLevel
   );
 
 
@@ -302,9 +302,9 @@ export const createOrgInterview = async (
   role: string,
   compName: string,
   durationMinutes: number,
-  interviewType:interviewTypes,
-  evalutionCriteria:EvalutionCriteria[],
-  experienceLevel:experienceLevelTypes
+  interviewType: interviewTypes,
+  evalutionCriteria: EvalutionCriteria[],
+  experienceLevel: experienceLevelTypes
 ) => {
   return db.transaction(async (tx: any) => {
     const interview = await tx.orm.public.Interview.create({
@@ -321,8 +321,8 @@ export const createOrgInterview = async (
       durationMinutes,
       interviewType,
       evalutionCriteria:
-    evalutionCriteria as unknown as JsonValue,
-    experienceLevel
+        evalutionCriteria as unknown as JsonValue,
+      experienceLevel
     });
 
     await tx.orm.public.Notification.create({
@@ -366,7 +366,7 @@ export const getOrgInterviewDetails = async (
       "endedAt",
     )
     .include("InterviewSegment")
-    .include("interviewcandidate",(candidate)=>
+    .include("interviewcandidate", (candidate) =>
       candidate.include("resume")
     )
     .include("Message")
@@ -402,9 +402,9 @@ export const createUserInterview = async (
   role: string,
   compName: string,
   durationMinutes: number,
-  interviewType:interviewTypes,
-  evalutionCriteria:EvalutionCriteria[],
-  experienceLevel:experienceLevelTypes
+  interviewType: interviewTypes,
+  evalutionCriteria: EvalutionCriteria[],
+  experienceLevel: experienceLevelTypes
 ) => {
   const slug = randomBytes(16).toString("hex");
   return await db.orm.public.Interview.create({
@@ -421,9 +421,9 @@ export const createUserInterview = async (
     slug,
     durationMinutes,
     interviewType,
-   evalutionCriteria:
-    evalutionCriteria as unknown as JsonValue,
-    experienceLevel:experienceLevel
+    evalutionCriteria:
+      evalutionCriteria as unknown as JsonValue,
+    experienceLevel: experienceLevel
   });
 };
 
@@ -531,7 +531,7 @@ export const createOrgCandidate = async (
 
     await uploadFileToS3(key, buffer, mimetype);
 
-   const resume = await db.orm.public.Resume.create({
+    const resume = await db.orm.public.Resume.create({
       candidateId: candidate.id,
       fileUrl: `${process.env.R2_ENDPOINT}/${key}`,
       fileKey: key,
@@ -539,11 +539,18 @@ export const createOrgCandidate = async (
     });
 
 
-     await ResumeQueue.add("process_Resume", {
-        resumeId: resume.id,
-        candidateId:resume.candidateId,
-        fileKey: key,
-        fileType: mimetype,
+    await ResumeQueue.add("process_Resume", {
+      resumeId: resume.id,
+      candidateId: resume.candidateId,
+      fileKey: key,
+      fileType: mimetype,
+    },
+      {
+        attempts: 5,
+        backoff: {
+          type: "exponential",
+          delay: 2000,
+        }
       });
   }
 };

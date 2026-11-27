@@ -59,6 +59,12 @@ export const uploadUserResume = async (
     userId: userId,
     fileKey: key,
     fileType: mimetype,
+  }, {
+    attempts: 5,
+    backoff: {
+      type: "exponential",
+      delay: 2000,
+    }
   });
 
   return resume;
@@ -163,11 +169,10 @@ export const getPublicReport = async (token: string) => {
   if (!interview) {
     throw new AppError("Interview not found", 404);
   }
-   let videoUrls = [];
-  for (const key of interview?.InterviewSegment)
-  {
-   const url = await getSignedUrlFromS3(key?.videoKey);
-   videoUrls.push(url)
+  let videoUrls = [];
+  for (const key of interview?.InterviewSegment) {
+    const url = await getSignedUrlFromS3(key?.videoKey);
+    videoUrls.push(url)
   }
 
   return {
@@ -194,10 +199,10 @@ export const getUserInvitations = async (email: string) => {
 
 
 
-export const getUserQueryData = async(q:string,userId:number)=>{
-const interviews = await db.orm.public.Interview
-    .where({ createdBy:userId })
-   .where((i) =>
+export const getUserQueryData = async (q: string, userId: number) => {
+  const interviews = await db.orm.public.Interview
+    .where({ createdBy: userId })
+    .where((i) =>
       or(
         i.title.ilike(`%${q}%`),
         i.role.ilike(`%${q}%`),
@@ -206,21 +211,21 @@ const interviews = await db.orm.public.Interview
     )
     .all();
 
-    return {interviews};
+  return { interviews };
 }
 
 export const getUserNotifications = async (
   userId: number,
   tenantId?: string
 ) => {
-    const notifications = db.orm.public.Notification
+  const notifications = db.orm.public.Notification
     .where((n) =>
       tenantId
         ? n.tenantId.eq(tenantId)
         : or(
-            n.targetUserId.eq(userId),
-            n.actorId.eq(userId)
-          )
+          n.targetUserId.eq(userId),
+          n.actorId.eq(userId)
+        )
     )
     .where((n) =>
       n.reads.none((r) => r.userId.eq(userId))

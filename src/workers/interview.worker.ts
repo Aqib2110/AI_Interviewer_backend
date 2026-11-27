@@ -41,23 +41,29 @@ const worker = new Worker(
           }
         }
 
-          await AIAssessmentQueue.add("skills_evaluation", {
-            interviewId: interview.id,
-          });
-        } catch (error) {
-          console.error(
-            "Interview expiration failed:",
-            error instanceof Error ? error.message : error
-          );
+        await AIAssessmentQueue.add("skills_evaluation", {
+          interviewId: interview.id,
+        }, {
+          attempts: 5,
+          backoff: {
+            type: "exponential",
+            delay: 2000,
+          }
+        });
+      } catch (error) {
+        console.error(
+          "Interview expiration failed:",
+          error instanceof Error ? error.message : error
+        );
 
-          throw error;
-        }
+        throw error;
       }
-  },
-    {
-      connection: redis,
-        concurrency: 3
     }
+  },
+  {
+    connection: redis,
+    concurrency: 3
+  }
 );
 
 worker.on("ready", () => {

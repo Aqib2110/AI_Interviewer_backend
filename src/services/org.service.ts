@@ -66,7 +66,7 @@ export const createOrgInvitation = async (
   });
 
   await db.orm.public.Notification.create({
-    actorId:userId,
+    actorId: userId,
     tenantId: orgId,
     type: "INVITATION",
     message: `Invitation sent to ${email} to join organization`,
@@ -75,6 +75,12 @@ export const createOrgInvitation = async (
   await emailQueue.add("sendInvitationEmail", {
     email,
     tokenHash,
+  }, {
+    attempts: 5,
+    backoff: {
+      type: "exponential",
+      delay: 2000,
+    }
   });
 };
 
@@ -111,7 +117,7 @@ export const resendOrgInvitation = async (
   });
 
   await db.orm.public.Notification.create({
-    actorId:userId,
+    actorId: userId,
     tenantId: orgId,
     type: "INVITATION",
     message: `Invitation resent to ${updatedInvitation?.email} to join organization`,
@@ -120,6 +126,12 @@ export const resendOrgInvitation = async (
   await emailQueue.add("sendInvitationEmail", {
     email: invitation.email,
     tokenHash,
+  }, {
+    attempts: 5,
+    backoff: {
+      type: "exponential",
+      delay: 2000,
+    }
   });
 
   return { ...updatedInvitation };
@@ -287,10 +299,10 @@ export const deleteOrgMemberRole = async (
 };
 
 
-export const getOrgQueryData = async(q:string,tenantId:string)=>{
-const interviews = await db.orm.public.Interview
+export const getOrgQueryData = async (q: string, tenantId: string) => {
+  const interviews = await db.orm.public.Interview
     .where({ tenantId })
-   .where((i) =>
+    .where((i) =>
       or(
         i.title.ilike(`%${q}%`),
         i.role.ilike(`%${q}%`),
@@ -300,9 +312,9 @@ const interviews = await db.orm.public.Interview
     )
     .all();
 
-    const candidates = await db.orm.public.Candidate
-    .where({ organizationId:tenantId })
-   .where((i) =>
+  const candidates = await db.orm.public.Candidate
+    .where({ organizationId: tenantId })
+    .where((i) =>
       or(
         i.name.ilike(`%${q}%`),
         i.email.ilike(`%${q}%`)
@@ -310,16 +322,16 @@ const interviews = await db.orm.public.Interview
     )
     .all();
 
-    return {interviews,candidates}
+  return { interviews, candidates }
 }
 
 export const getCandidateInfo = async (id: string) => {
   return db.orm.public.Interview.where((iv) =>
     iv.interviewcandidate.some({ id: id }),
   )
-.include("interviewcandidate", (candidate) =>
+    .include("interviewcandidate", (candidate) =>
       candidate.include("resume"),
-    )    .include("Report")
+    ).include("Report")
     .all();
 };
 
@@ -336,9 +348,9 @@ export const getOrgInvitations = async (userId: number, tenantId: string) => {
 
 export const getOrgMembers = async (tenantId: string, userId: number) => {
   return db.orm.public.Membership
-  .where((m) => and(m.organizationId.eq(tenantId), m.userId.neq(userId)))
-  .include("user", (user) => user.select("id","email"))
-  .all();
+    .where((m) => and(m.organizationId.eq(tenantId), m.userId.neq(userId)))
+    .include("user", (user) => user.select("id", "email"))
+    .all();
 
 };
 
