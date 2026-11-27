@@ -531,12 +531,20 @@ export const createOrgCandidate = async (
 
     await uploadFileToS3(key, buffer, mimetype);
 
-    await db.orm.public.Resume.create({
+   const resume = await db.orm.public.Resume.create({
       candidateId: candidate.id,
       fileUrl: `${process.env.R2_ENDPOINT}/${key}`,
       fileKey: key,
-      status: "PROCESSED",
+      status: "PENDING",
     });
+
+
+     await ResumeQueue.add("process_Resume", {
+        resumeId: resume.id,
+        candidateId:resume.candidateId,
+        fileKey: key,
+        fileType: mimetype,
+      });
   }
 };
 

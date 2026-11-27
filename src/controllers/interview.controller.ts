@@ -137,6 +137,17 @@ export const createOrgInterview = async (
       });
     }
 
+    const totalWeight = evalCriteria.reduce(
+      (sum, c) => sum + Number(c.weight),
+      0
+    );
+
+    if (totalWeight > 100) {
+      return res.status(400).json({
+        message: "evaluationCriteria total weight should not be greater than 100",
+      });
+    }
+
     if(!evalCriteria.length){
      return res.status(400).json({
         message: "evaluationCriteria is invalid",
@@ -263,6 +274,18 @@ export const createUserInterview = async (
     if(!evalCriteria.length){
      return res.status(400).json({
         message: "evaluationCriteria is invalid",
+      });
+    }
+
+
+     const totalWeight = evalCriteria.reduce(
+      (sum, c) => sum + Number(c.weight),
+      0
+    );
+
+    if (totalWeight > 100) {
+      return res.status(400).json({
+        message: "evaluationCriteria total weight should not be greater than 100",
       });
     }
 

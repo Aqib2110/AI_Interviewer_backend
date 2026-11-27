@@ -5,6 +5,8 @@ import { Worker } from "bullmq";
 import { getFileFromS3 } from "../lib/s3.js";
 import { parsePdfText, parseDocxText } from "../lib/parse.js";
 import { gemini } from "../lib/gemini.js";
+import { generateWithFallback } from "../lib/gemini.fallback.js";
+import { Candidate } from "@google/genai";
 
 const resumeSkillsSchema = {
   type: "OBJECT",
@@ -43,12 +45,31 @@ const resumeSkillsSchema = {
   required: ["skills"],
 };
 
+const apiKey = process.env.GEMINI_API_KEY;
+const model = process.env.GEMINI_EVALUATION_MODEL;
+
+if (!apiKey) {
+  throw new Error("GEMINI_API_KEY is missing");
+}
+
+if (!model) {
+  throw new Error("GEMINI_EVALUATION_MODEL is missing");
+}
+
+const fallbackModels = (process.env.GEMINI_EVALUATION_FALLBACK_MODELS ?? "")
+  .split(",")
+  .map((name) => name.trim())
+  .filter(Boolean);
+
+const evaluationModels = [...new Set([model, ...fallbackModels])];
+
+
 const worker = new Worker(
   "Resume",
   async (job) => {
     if (job.name !== "process_Resume") return;
 
-    const { resumeId, userId, fileKey, fileType } = job.data;
+    const { resumeId, userId, fileKey, fileType, candidateId } = job.data;
 
     try {
       console.log("Processing resume:", fileKey);
@@ -79,11 +100,13 @@ const worker = new Worker(
         throw new Error("No readable text found in resume");
       }
 
-      const modelResponse = await gemini.models.generateContent({
-        model: process.env.GEMINI_EVALUATION_MODEL!,
-        contents: parsedResumeText,
-        config: {
-          systemInstruction: `
+      const modelResponse = await generateWithFallback(
+        gemini,
+        evaluationModels,
+        {
+          contents: parsedResumeText,
+          config: {
+            systemInstruction: `
 You are an expert resume skill extractor.
 
 Extract skills explicitly mentioned or clearly demonstrated in the supplied resume.
@@ -99,36 +122,41 @@ Rules:
 - Assign the most appropriate category to each skill.
 - Return only the structured JSON response.
           `,
-          responseMimeType: "application/json",
-          responseJsonSchema: resumeSkillsSchema,
+            responseMimeType: "application/json",
+            responseJsonSchema: resumeSkillsSchema,
+          },
         },
-      });
+        (text) => {
+          const resume = JSON.parse(text);
+          return resume;
+        },
+      );
 
-      const content = modelResponse.text;
+      const skills = modelResponse?.skills;
 
-      if (!content) {
+      if (!skills) {
         throw new Error("Gemini returned an empty resume skill response");
       }
 
-      const result = JSON.parse(content);
 
-     await db.transaction(async(tx)=>{
+      await db.transaction(async (tx) => {
         await tx.orm.public.Resume.where({
-        id: resumeId,
-        userId: userId,
-      }).update({
-        status: "PROCESSED",
-        skills: JSON.stringify(result.skills),
-      });
-
-       await tx.orm.public.Notification.create({
-      targetUserId: userId,
-      actorId:userId,
-      type: "RESUME",
-      message: `your resume is ready for the interview.`,
-    });
-
-     })
+          id: resumeId,
+          ...(userId != null && { userId }),
+          ...(candidateId != null && { candidateId }),
+        }).update({
+          status: "PROCESSED",
+          skills: JSON.stringify(skills),
+        });
+        if (userId) {
+          await tx.orm.public.Notification.create({
+            targetUserId: userId,
+            actorId: userId,
+            type: "RESUME",
+            message: `your resume is ready for the interview.`,
+          });
+        }
+      })
       console.log("Resume processed successfully:", resumeId);
     } catch (error) {
       console.error(
